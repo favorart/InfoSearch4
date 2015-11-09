@@ -1,0 +1,12 @@
+﻿
+hadoop run_is4.sh
+# map_is4.py, 'red_is4.py <-f <max>|-s 9>'
+
+-f|-s - Фибоначчи или Simple9
+
+#  !!! Сжатию Фибоначчи нужно задать правильный параметр =
+#  !!! = количеству IDшников URLов, которые нужно записать в индекс.
+#  !!! МАКСИМАЛЬНОЕ ЧИСЛО ФИБОНАЧЧИ, которые надо перподсчитать!
+
+python      reshape.py <-f <max>|-s 9> <in_data_path> <out_binary_path> <out_index_path>
+python  InfoSearch4.py <-f <max>|-s 9> <in_binary_path> <in_index_path> <in_urls_path>
