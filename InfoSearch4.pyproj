@@ -22,13 +22,19 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="BitsFlow.py" />
-    <Compile Include="fib_archive.py" />
+    <Compile Include="bm25.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="InfoSearch4.py" />
     <Compile Include="map_is4.py" />
+    <Compile Include="Passage.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="red_is4.py" />
-    <Compile Include="reshape.py" />
-    <Compile Include="s9_archive.py" />
+    <Compile Include="ReShape.py" />
+    <Compile Include="utils.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="run.bat" />

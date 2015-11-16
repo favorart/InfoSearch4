@@ -5,18 +5,18 @@ import sys
 import codecs
 # import numpy as np
 
-import fib_archive
-import s9_archive
+import zipimport
+importer = zipimport.zipimporter('bs123.zip')
 
 
 if   (len(sys.argv) > 2 and sys.argv[1] == '-f'):
-    import  fib_archive
+    fib_archive = importer.load_module('fib_archive')
     # all_docs= povarenok:199456, lenta:564548
     max_number = int(sys.argv[2]) # max(199460, 564550)
-    archiver = module.FibonacciArchiver( max_number )
+    archiver = fib_archive.FibonacciArchiver( max_number )
 
 elif (len(sys.argv) > 2 and sys.argv[1] == '-s'):
-    import s9_archive
+    s9_archive = importer.load_module('s9_archive')
     archiver =  s9_archive.Simple9Archiver   ()
 
 else: raise ValueError
