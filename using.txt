@@ -10,3 +10,37 @@ hadoop run_is4.sh
 
 python      reshape.py <-f <max>|-s 9> <in_data_path> <out_binary_path> <out_index_path>
 python  InfoSearch4.py <-f <max>|-s 9> <in_binary_path> <in_index_path> <in_urls_path>
+
+type "C:\data\povarenok.ru\1_1000\docs-000.txt" | python map_is4.py      | sort > data\povarenok1000_mapped.txt
+type data\povarenok1000_mapped.txt              | python red_is4.py -s 9 | sort > data\povarenok1000_reduced.txt
+
+-------------------------------------------------------------------------------------------
+index.txt format:
+	norm [offset:size:len ids] [[offset:size] [offset:size] ...]
+
+backward.bin
+norm [ids] [pos:word_form] [pos:word_form]
+-------------------------------------------------------------------------------------------
+
+Отдельно координаты и отдельно doc_ids,
+чтобы можно было раздельно поднимать
+
+
+Прогнать marks булевым поиском
+         marks поднимаются вообще? --> M
+
+не поднимаются
+
+Прогнать marks черновым ранжированием
+         найти границу - >80% marks появляются в выдаче --> N
+Прогнать marks пассажным алгоритмом
+
+
+'AND'.join([ 'OR'.join(('word1')), 'OR'.join(('word2', 'syn1', ...)), ... ])
+? неправильная раскладка
+	прогнать
+? список стоп слов
+	вместе со стоп словами и без стоп словами
+
+?много-процессность?
+

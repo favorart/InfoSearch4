@@ -1,7 +1,10 @@
 
-set INPUT=C:\Users\MainUser\Downloads\Cloud.mail\povarenok.ru\1_1000\docs-000
+set INPUT=C:\data\povarenok.ru\1_1000\docs-000
 
-type        %INPUT%.txt | python map_is4.py           | sort > .\data\mapped.txt
-type  .\data\mapped.txt | python red_is4.py -f 564550 | sort > .\data\output.txt
+type        %INPUT%.txt | python map_is4.py      | sort > .\data\mapped.txt
+type  .\data\mapped.txt | python red_is4.py -s 9 | sort > .\data\output.txt
 
-rem    type %INPUT%.txt | python map_is4.py   | sort | python red_is4.py -s 0 | sort > .\data\output_all.txt
+rem    type %INPUT%.txt | python map_is4.py      | sort | python red_is4.py -s 9 | sort > .\data\output_all.txt
+
+type "C:\data\povarenok.ru\1_1000\docs-000.txt" | python map_is2.py      | sort > povarenok1000_mapped.txt
+type                  povarenok1000_mapped.txt  | python red_is2.py -s 9 | sort > povarenok1000_reduced.txt

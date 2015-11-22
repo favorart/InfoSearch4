@@ -5,13 +5,17 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bab21737-7e1f-44e4-a1ad-5836c067fb28</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>InfoSearch4.py</StartupFile>
+    <StartupFile>ReShape.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>InfoSearch4</Name>
     <RootNamespace>InfoSearch4</RootNamespace>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>-s 9</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,13 +29,16 @@
     <Compile Include="bm25.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="InfoSearch4.py" />
+    <Compile Include="BoolSearch.py" />
     <Compile Include="map_is4.py" />
     <Compile Include="Passage.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="red_is4.py" />
     <Compile Include="ReShape.py" />
+    <Compile Include="TestMarks.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="utils.py">
       <SubType>Code</SubType>
     </Compile>

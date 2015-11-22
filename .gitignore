@@ -228,9 +228,16 @@ $RECYCLE.BIN/
 *.msp
 
 # Windows shortcuts
+*.pyc
 *.lnk
 *.pyc
 *.zip
 *.docx
 *.tsv
-
+*.csv
+*.xls
+*.doc
+*.docx
+*.xlsx
+/data/*
+/marks/*

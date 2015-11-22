@@ -4,6 +4,9 @@
 from base64 import b64decode
 from zlib import decompress
 
+import pymorphy2
+import hashlib
+import difflib
 import codecs
 import sys
 import re
@@ -14,25 +17,63 @@ importer = zipimport.zipimporter('bs123.zip')
 bs4 = importer.load_module('bs4')
 
 
+class MyLex(object):
+    """ """
+    def __init__(self):
+        """ """
+        self.morph = pymorphy2.MorphAnalyzer()
+        self.hasher = hashlib.md5()
+        self.hash_len = 251
+
+        # self.min_word_len = 3
+        self.re_extract_words = re.compile(ur'[^a-zа-яё0-9]')
+        self.re_repeat_spaces = re.compile(ur'[ ]+')
+        self.re_margin_spaces = re.compile(ur'(?:^[ ]+)|(?:[ ]+$)')
+        
+    def extract_words(self, text):
+        """ """
+        text = self.re_extract_words.sub(u' ', text.lower())
+        text = self.re_repeat_spaces.sub(u' ', text)
+        text = self.re_margin_spaces.sub(u'' , text)
+    
+        words = re.split(ur' ', text)
+        # words = filter(lambda w: len(w) >= self.min_word_len, words)
+        return  words
+
+    def normalize(self, word):
+        """ """
+        # if len(word) >= self.min_word_len:
+        norm = self.morph.parse(word)[0].normal_form
+
+        self.hasher.update(word.encode('utf-8'))
+        hash = int(self.hasher.hexdigest(), 16) % self.hash_len
+        
+        return  (norm, hash)
+
+
+mylex = MyLex()
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 for line in sys.stdin:
+    splt = line.strip().split()
 
-    id, doc = line.strip().split()
-    html = decompress(b64decode(doc))
+    if len(splt) == 2:
+        id, doc = splt
+        html = decompress(b64decode(doc))
     
-    try:
-        html = html.decode('utf8', 'ignore')
-        bs = bs4.BeautifulSoup(html, 'html.parser')
-        text = bs.get_text()
-    except:
-        continue
+        try:
+            html = html.decode('utf8', 'ignore')
+            bs = bs4.BeautifulSoup(html, 'html.parser')
+            del html
+            text = bs.get_text()
+            del bs
+        except:
+            continue
     
-    text = re.sub(ur'[^a-zа-яё0-9-]',     ur' ', text.lower())
-    text = re.sub(ur'[a-zа-яё0-9-]{1,2}', ur' ', text)
-    text = re.sub(ur'[ ]+',               ur' ', text)
+        words = mylex.extract_words(text)
+        del text
+        print u'$\t%s\t%s' % (id, str(len(words)))
 
-    words = text.split(u' ')
-    # for word in [ w for w in list(set(words)) if len(w) > 2 ]:
-    for pos,word in enumerate(words):
-        print u'%s\t%s' % (word, id, pos) 
-
+        for pos,word in enumerate(words):
+            norm, hash = mylex.normalize(word)
+            print u'%s\t%s\t%s\t%s' % (norm, id, pos, hash)
+        del words
