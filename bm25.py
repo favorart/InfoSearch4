@@ -22,14 +22,14 @@ else: raise ValueError
 from utils import MyLex
 from BoolSearch import BooleanSearch
 
-class BlaskRank(object):
+class BlackRank(object):
     """ Алгоритм BM25:        
         + для каждого документа, который находит булев поиск,
           вычисляем bm25-ранг.
         + Очередь с приоритетами - отбираем 100-1000 документов
           с максимальным рангом.
     """
-    def __init__(self, bs, lex=utils.MyLex(), dlen_name='/data/dlens.txt', stp_name='./data/StopWords.txt'):
+    def __init__(self, bs, lex, dlen_name='/data/dlens.txt', stp_name='./data/StopWords.txt'):
         """ """
         self.lex = lex
         self.bs = bs
@@ -114,11 +114,12 @@ class BlaskRank(object):
 
 def black_rank():
     """ """
-    blk_rank = sys.argv[3] if len(sys.argv) > 3 else './data/black_rank.txt'
-    bin_name = sys.argv[4] if len(sys.argv) > 4 else './data/backward.bin'
-    ndx_name = sys.argv[5] if len(sys.argv) > 5 else './data/index.txt'
-    ndx_lens = sys.argv[6] if len(sys.argv) > 6 else './data/dlens.txt'
+    blk_rank = sys.argv[3] if len(sys.argv) > 3 else './data/povarenok1000_black_rank.txt'
+    bin_name = sys.argv[4] if len(sys.argv) > 4 else './data/povarenok1000_backward.bin'
+    ndx_name = sys.argv[5] if len(sys.argv) > 5 else './data/povarenok1000_index.txt'
+    ndx_lens = sys.argv[6] if len(sys.argv) > 6 else './data/povarenok1000_dlens.txt'
     mrk_name = sys.argv[7] if len(sys.argv) > 7 else 'C:\\data\\povarenok.ru\\all\\povarenok1000.tsv'
+    url_name = sys.argv[8] if len(sys.argv) > 8 else 'C:\\data\\povarenok.ru\\1_1000\\urls.txt'
 
     urls = []
     with open(url_name, 'r') as f_urls:
@@ -127,7 +128,7 @@ def black_rank():
             url = re.sub(r'(?:^https?://(www\.)?)|(?:/?\r?\n?$)', '', url)
             urls.append(url)
 
-    br = BlaskRank(bs=BooleanSearch(ndx_name, bin_name), lex=MyLex())
+    br = BlackRank(bs=BooleanSearch(ndx_name, bin_name), lex=MyLex())
 
     found = 0
     with codecs.open(mrk_name, 'r', encoding='utf-8') as f_marks:

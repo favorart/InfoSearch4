@@ -45,8 +45,8 @@ def reshape(dat_name, ndx_name, bin_name, len_name, use_hashes=True, verbose=Fal
                     splt = [ g[1].strip().split('\t') for g in group ]
 
                     # 1. ( N_+_documents_lengthes )
-                    if (len(splt) == 2) and (word == u'$'):
-                        word, coded = splt
+                    if (len(splt) == 1) and (word == u'$'):
+                        coded = splt
                 
                         decoded = archiver.decode(b64decode(coded))
                         with open(len_name, 'w') as f_dlen:
