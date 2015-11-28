@@ -21,7 +21,7 @@ importer = zipimport.zipimporter('bs123.zip')
 # 
 # else: raise ValueError
 
-class FullTextSearch(object):
+class TextSearch(object):
     """ """
     def __init__(self, bs, syn_name='./data/RusSyn.txt'):
         """ """
@@ -41,8 +41,9 @@ class FullTextSearch(object):
         """ """
         return 0
 
-class Passage(object):
-    """ Алгоритм:
+    """ 
+        Passage
+        Алгоритм:
     
         Пассаж - фрагмент документа, 
         размера, не превышающего заданный, в котором 

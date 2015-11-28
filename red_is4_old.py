@@ -15,7 +15,8 @@ importer = zipimport.zipimporter('bs123.zip')
 if   (len(sys.argv) > 2 and sys.argv[1] == '-f'):
     module = importer.load_module('fib_archive')
     # all_docs= povarenok:199456, lenta:564548
-    archiver = module.FibonacciArchiver( int(sys.argv[2]) )
+    max_number = int(sys.argv[2]) # max(199460, 564550)
+    archiver = module.FibonacciArchiver( max_number )
 
 elif (len(sys.argv) > 2 and sys.argv[1] == '-s'):
     module = importer.load_module('s9_archive')
@@ -23,11 +24,8 @@ elif (len(sys.argv) > 2 and sys.argv[1] == '-s'):
 
 else: raise ValueError
 
-if   (len(sys.argv) > 3 and sys.argv[3] == '-e'):
-    use_hashes = True
-else:
-    use_hashes = False
 
+use_hashes = True
 
 sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
@@ -54,17 +52,18 @@ for word, group in groupby((line.strip().split('\t', 1) for line in sys.stdin), 
         del coded
 
     else:
-        ids_and_pos_lens = []
+        ids = []
 
         for id, new_group in groupby((g[1].strip().split('\t') for g in group), itemgetter(0)):
             if use_hashes:
 
-                posits_and_hashes = [ (int(g[1]), int(g[2])) for g in new_group ]
+                tuples = [ (int(g[1]), int(g[2])) for g in new_group ]
                 del new_group
+                tuples.sort(key=itemgetter(0))
 
-                posits_and_hashes.sort(key=itemgetter(0))
-                posits, hashes = zip(*posits_and_hashes)
-                del posits_and_hashes
+                posits = array('i', [ t[0] for t in tuples])
+                hashes = array('i', [ t[1] for t in tuples])
+                del tuples
 
             else:
                 posits = [ int(g[1]) for g in new_group ]
@@ -72,39 +71,32 @@ for word, group in groupby((line.strip().split('\t', 1) for line in sys.stdin), 
                 posits.sort()
 
             # coordinates
-            posits = list(posits)
             for i in xrange(len(posits) - 1, 0, -1):
                 posits[i] -= posits[i-1]
         
-            ids_and_pos_lens.append( (int(id), len(posits)) )
+            ids.append( array('i', [int(id), len(posits)]) )
 
-            coded_pos = archiver.code(posits)
-            del posits
-
+            coded_pos = archiver.code(posits); del posits
             if use_hashes:
-                coded_hss = archiver.code(hashes)
-                del hashes
-                
+                coded_hss = archiver.code(hashes); del hashes
                 print u'%s\t%s\t%s\t%s' % (word, (int(id) + 1), b64encode(coded_pos), b64encode(coded_hss))
                 del coded_hss
             else:
-                print u'%s\t%s\t%s'     % (word, (int(id) + 1), b64encode(coded_pos))
-
+                print u'%s\t%s\t%s' % (word, (int(id) + 1), b64encode(coded_pos))
             del coded_pos
+            
 
-        ids_and_pos_lens.sort(key=itemgetter(0))
-        ids, len_posits = zip(*ids_and_pos_lens)
-        del ids_and_pos_lens
-
-        # document ids shifting
-        ids = list(ids)
+        ids.sort(key=itemgetter(0))        
         for i in xrange(len(ids) - 1, 0, -1):
-            ids[i] -= ids[i-1]
+            ids[i][0] -= ids[i-1][0]
 
-        coded_ids  = archiver.code(ids)
-        coded_lens = archiver.code(len_posits)
-        del ids, len_posits
+        # with open('./data/check.txt', 'w') as f:
+        #     print >>f, id_s.tolist() + positions.tolist() # ' '.join(ids + positions.tolist())
 
-        print u'%s\t%s\t%s\t%s' % (word, 0, b64encode(coded_ids), b64encode(coded_lens))
-        del coded_ids, coded_lens
+        ids = [ item for t in ids for item in t ] # !!! FLATTEN  !!! Каждое чётное ID, каждое нечётное LEN_POSS
+        coded_ids = archiver.code(ids)
+        del ids
+
+        print u'%s\t%s\t%s' % (word, 0, b64encode(coded_ids))
+        del coded_ids
 

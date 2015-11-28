@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bab21737-7e1f-44e4-a1ad-5836c067fb28</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ReShape.py</StartupFile>
+    <StartupFile>bm25.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -13,7 +13,7 @@
     <Name>InfoSearch4</Name>
     <RootNamespace>InfoSearch4</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-s 9</CommandLineArguments>
+    <CommandLineArguments>-s 9 -e -d povarenok1000s_reduced_s.txt</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
@@ -26,6 +26,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="back.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="bm25.py">
       <SubType>Code</SubType>
     </Compile>
@@ -35,7 +38,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="red_is4.py" />
+    <Compile Include="red_is4_old.py" />
     <Compile Include="ReShape.py" />
+    <Compile Include="ReShape_old.py" />
+    <Compile Include="sort.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="TestMarks.py">
       <SubType>Code</SubType>
     </Compile>

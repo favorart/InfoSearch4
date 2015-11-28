@@ -6,7 +6,6 @@ from zlib import decompress
 
 import pymorphy2
 import hashlib
-import difflib
 import codecs
 import sys
 import re
@@ -53,6 +52,8 @@ class MyLex(object):
 
 mylex = MyLex()
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+# f_out = codecs.open("data/povarenok1000_mapped1.txt", 'w', encoding='utf-8')
+# codecs.open("C:\\data\\povarenok.ru\\1_1000\\docs-000.txt", 'r', encoding='utf-8'): 
 for line in sys.stdin:
     splt = line.strip().split()
 
@@ -64,16 +65,19 @@ for line in sys.stdin:
             html = html.decode('utf8', 'ignore')
             bs = bs4.BeautifulSoup(html, 'html.parser')
             del html
-            text = bs.get_text()
+
+            # kill all script and style elements
+            for script in bs(["script", "style"]):
+                script.extract() # rip it out
+            text = u' '.join( bs.strings )
             del bs
-        except:
-            continue
-    
+        except: continue
+
         words = mylex.extract_words(text)
         del text
-        print u'$\t%s\t%s' % (id, str(len(words)))
+        print u'$\t%s\t%s' % (id, str(len(words))) # >>f_out, 
 
         for pos,word in enumerate(words):
             norm, hash = mylex.normalize(word)
-            print u'%s\t%s\t%s\t%s' % (norm, id, pos, hash)
+            print u'%s\t%s\t%s\t%s' % (norm, id, pos, hash) #  >>f_out, 
         del words

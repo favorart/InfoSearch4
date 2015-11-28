@@ -11,8 +11,12 @@ hadoop run_is4.sh
 python      reshape.py <-f <max>|-s 9> <in_data_path> <out_binary_path> <out_index_path>
 python  InfoSearch4.py <-f <max>|-s 9> <in_binary_path> <in_index_path> <in_urls_path>
 
-type "C:\data\povarenok.ru\1_1000\docs-000.txt" | python map_is4.py      | sort > data\povarenok1000_mapped.txt
-type data\povarenok1000_mapped.txt              | python red_is4.py -s 9 | sort > data\povarenok1000_reduced.txt
+type "C:\data\povarenok.ru\1_1000\docs-000.txt" | python map_is4.py         | python sort.py > data\povarenok1000_mapped_s.txt
+type data\povarenok1000_mapped_s.txt            | python red_is4.py -s 9 -e | python sort.py > data\povarenok1000s_reduced_s.txt
+
+type data\povarenok1000_mapped1.txt | python sort.py > data\povarenok1000_mapped_s.txt
+
+python reshape.py -s 9 -e -d data\povarenok1000s_reduced_s.txt
 
 -------------------------------------------------------------------------------------------
 index.txt format:

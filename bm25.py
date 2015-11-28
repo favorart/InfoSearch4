@@ -1,26 +1,18 @@
 ﻿from math import *
+from operator import itemgetter
+import codecs
 import sys
 import re
 
 
 import zipimport
 importer = zipimport.zipimporter('bs123.zip')
-    
-if   (len(sys.argv) > 2 and sys.argv[1] == '-f'):
-    fib_archive = importer.load_module('fib_archive')
-    # all_docs= povarenok:199456, lenta:564548
-    max_number = int(sys.argv[2]) # max(199460, 564550)
-    archiver = fib_archive.FibonacciArchiver( max_number )
-
-elif (len(sys.argv) > 2 and sys.argv[1] == '-s'):
-    s9_archive = importer.load_module('s9_archive')
-    archiver =  s9_archive.Simple9Archiver   ()
-
-else: raise ValueError
 
 
-from utils import MyLex
+import utils
+# from utils import MyLex
 from BoolSearch import BooleanSearch
+
 
 class BlackRank(object):
     """ Алгоритм BM25:        
@@ -30,13 +22,13 @@ class BlackRank(object):
           с максимальным рангом.
     """
     def __init__(self, bs, lex, dlen_name='/data/dlens.txt', stp_name='./data/StopWords.txt'):
-        """ """
+        """ Constructor """
         self.lex = lex
         self.bs = bs
 
         self.min_len_meaning_word = 3
         with codecs.open(stp_name, 'r', encoding='utf-8') as f_stops:
-            self.stops = set(filter( lambda line: line.strip().rstrip('\n'), f_stops.readlines() ))
+            self.stops = set(map(lambda line: line.strip().rstrip('\n'), f_stops.readlines() ))
 
         with open(dlen_name, 'r') as f_dlens:
             splt = f_dlens.readline().strip().rstrip('\n').split('\t')
@@ -44,12 +36,12 @@ class BlackRank(object):
                 # N - кол-во документов в корпусе
                 self.N = int(splt[0])
                 # длины документов в корпусе
-                self.doc_lens = filter(lambda i: int(i), splt[1].split(' '))
+                self.doc_lens = map(lambda dlen: int(dlen), splt[1].split(' '))
         # Коэффициенты алгоритма
         self.k = 2.
         self.b = 0.75
         # средняя длина документа в корпусе
-        self.A = sum(self.doc_lens) / self.N
+        self.A = float(sum(self.doc_lens)) / self.N
 
     def filter_by_stops(self, query_words):
         """ """
@@ -63,88 +55,104 @@ class BlackRank(object):
 
     def tf_idf(self, dic):
         """ tf-idf
-        
-            dic: { word: [(doc_id, n_coords), ... ] ... }
+            dic: { 'word': { 'ids'  : [doc_id,   ... ],
+                             'lens' : [n_coords, ... ],
+                             ... }, ... }
         """
         tfs, idfs = {}, {}
-        for i, word, index in enumerate(dic.items()):
-            
-            tfs[word] = {}
-            n_docs = len(index)
-            
-            for doc_id, n_coords in index:
-                tfs[word][doc_id] = 1. + log10(n_coords)
+        for word, index in dic.items():
 
-            idfs[word] = (log10(self.N / n_docs), n_docs)
-            return (tfs, idfs)
+            tfs[word] = {}
+            for doc_id, n_coords in zip(index['ids'], index['lens']):
+                tfs[word][doc_id] = 1. + log10(float(n_coords))
+
+            n_docs = float(len(index['ids']))
+            idfs[word] = log10(float(self.N) / n_docs)
+        return (tfs, idfs)
 
     def search(self, query):
         """ dic = { norm: [ (doc_id, n_coords), ... ], ... } """
-        query_norms = list(set(filter( lex.norm(w) for w in query.split() )))
-        query_filtered, query_stops = self.filter_by_stops(query_norms)
+        doc_ids = set()
+        query_norms = list(set([ self.lex.norm( w.lower() ) for w in query.split() ]))
 
-        dic, answers = {}, []
-        for word in query_norms:
-            # if query_words != query_filtered: pass else:
-            answer = bs.search(query_filtered, query_stops)
-            dic[word] = answer
-            answers += answer
+        #     # if query_words != query_filtered: pass else:
+        #     # answer = self.bs.search(query_norm, query_stops)
 
-        answers = list(set(answers))
-        tfs, idfs = self.tf_idf()
+        # query_fltrs, query_stops = self.filter_by_stops(query_norms)
+        # answer_fltrs = self.bs.extract(query_fltrs, up=['ids', 'lens'])
+        # answer_stops = self.bs.extract(query_stops, up=['ids', 'lens'])
+        # for word, dic in answer_fltrs: doc_ids += dic['ids']
+        # for word, dic in answer_stops: doc_ids += dic['ids']
 
-        # score(q,d) = sum_(t in q and d) (tf * idf)
+        answer = self.bs.extract(query_norms, up=['ids', 'lens'])
+        for word, dic in answer.items():
+            if dic['ids']:
+                doc_ids |= set(dic['ids'])
 
-        score = {}
-        for doc_id in answers:
-            tf = tfs[word][doc_id]
-            idf = idfs[word]
+        if not doc_ids:
+            return None
+        # OR
+        tfs, idfs = self.tf_idf(answer)
 
-            A = self.A
+        A = self.A
+        k = self.k
+        b = self.b
+        doc_scores = []
+        for doc_id in doc_ids:
             L = self.doc_lens[doc_id]
 
-            score[doc_id] = 0
-            for word in query_words:
-                score[doc_id] += tf / ( k * (1. - b + b * L / A) + tf )
-            score[doc_id] *= idf
+            score = 0
+            for word in query_norms:
+                try:
+                    tf = tfs[word][doc_id]
+                except: continue
+                idf = idfs[word]
+
+                score += (tf * idf) / ( k * (1. - b + b * L / A) + tf )
+            doc_scores.append( (doc_id, score) )
 
         # idf > 0, выкидываем стоп слова
-        return score
+        doc_scores.sort(key=itemgetter(1), reverse=True)
+        return doc_scores
 
 
 def black_rank():
     """ """
-    blk_rank = sys.argv[3] if len(sys.argv) > 3 else './data/povarenok1000_black_rank.txt'
-    bin_name = sys.argv[4] if len(sys.argv) > 4 else './data/povarenok1000_backward.bin'
-    ndx_name = sys.argv[5] if len(sys.argv) > 5 else './data/povarenok1000_index.txt'
-    ndx_lens = sys.argv[6] if len(sys.argv) > 6 else './data/povarenok1000_dlens.txt'
-    mrk_name = sys.argv[7] if len(sys.argv) > 7 else 'C:\\data\\povarenok.ru\\all\\povarenok1000.tsv'
-    url_name = sys.argv[8] if len(sys.argv) > 8 else 'C:\\data\\povarenok.ru\\1_1000\\urls.txt'
+    args = utils.parse_args()
 
-    urls = []
-    with open(url_name, 'r') as f_urls:
-        for line in f_urls.readlines():
-            id, url = line.strip().split()
-            url = re.sub(r'(?:^https?://(www\.)?)|(?:/?\r?\n?$)', '', url)
-            urls.append(url)
+    if  args.fib:
+        fib_archive = importer.load_module('fib_archive')
+        archiver = fib_archive.FibonacciArchiver(args.fib)
 
-    br = BlackRank(bs=BooleanSearch(ndx_name, bin_name), lex=MyLex())
+    elif args.s9:
+        s9_archive = importer.load_module('s9_archive')
+        archiver =  s9_archive.Simple9Archiver()
 
-    found = 0
-    with codecs.open(mrk_name, 'r', encoding='utf-8') as f_marks:
-        for i,line in enumerate(f_marks.readlines()[2:]):
+    with open(args.url_name, 'r') as f_urls:
+        urls = map(lambda line: re.sub(r'(?:^https?://(www\.)?)|(?:/?\r?\n?$)', '', \
+                                line.strip().split()[1]), f_urls)
+                   
+    br = BlackRank( bs=BooleanSearch(args.ndx_name, args.bin_name, archiver), \
+                    lex=utils.MyLex(), dlen_name=args.len_name)
+
+    found = []
+    with codecs.open(args.mrk_name, 'r', encoding='utf-8') as f_marks:
+        for i,line in enumerate(f_marks.readlines()[10:]):
             splt = line.split('\t')
             if len(splt) == 2:
                 query, mark_url = splt
                 mark_url = re.sub(r'(?:^https?://(www\.)?)|(?:/?\r?\n?$)', '', mark_url)
 
                 answer = br.search(query)
-                
-                m = re.search(mark_url, ' '.join([ urls[i] for i in answer ]))
-                if m is not None:
-                    print (mark_url + ' ' + url)
-                    found += 1
-                    break
+                if answer:
+                    # m = re.search(mark_url, ' '.join([ urls[i] for i in answer ]))
+                    # if m is not None:
+                    found_urls = [ urls[i[0]] for i in answer ]
+                    if  mark_url in found_urls:
+                        index = found_urls.index(mark_url)
+                        print (mark_url + ' ' + url)
+                        found.append(index)
+                        break
                 # else: print '\t' + query.encode('cp866', 'ignore')
     print found
 
