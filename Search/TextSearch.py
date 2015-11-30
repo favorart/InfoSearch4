@@ -135,7 +135,7 @@ class TextSearch(object):
 
         return passages
 
-    def passage_rank(self, passage, query__n_h, query_words, doc_id):
+    def passage_rank(self, passage, query__n_h, uniq_query_norms, doc_id):
         """ Каждый пассаж численно оценивается по следующим показателям:
             •	Полнота:      %слов из запроса в пассажей, все ли слова представлены
             •	Расстояние    от начала документа
@@ -146,36 +146,32 @@ class TextSearch(object):
             Returns the vector of passage characteristics
             -->  maximaze to get the best
         """
+        query_norms = uniq_query_norms
         # passage item: norm, posit, hash
-        passage_norms  = [ norm for norm, posit, hash in passage ]
-        passage_hashes = [ hash for norm, posit, hash in passage ]
+        psg_norms, psg_posits, psg_hashes = zip(*passage)
 
-        query__n_h = list(set(query__n_h))
+        fullness = sum([ float(norm in psg_norms) for norm in query_norms ]) / len(query_norms)
 
-        fullness = 0.
-        for norm, hash in query__n_h:
-            fullness += float(norm in passage_norms)
-        fullness /= len(query__n_h)
-
-        passage_range = passage[-1][1] - passage[0][1]
-        compactness = float(passage_range - len(passage)) / passage_range
+        psg_range = passage[-1][1] - passage[0][1]
+        compactness = float(psg_range - len(passage)) / psg_range
 
         len_text = self.br.doc_lens[doc_id]
         close2start = float(passage[0][1]) / len_text
 
-        words_form = 0.
-        for p_norm, p_group in itertools.groupby(passage, key=itemgetter(0)):
-            # for norm, group in itertools.groupby(query__n_h, key=itemgetter(0)):
-            hashes = passage
-            for norm, hash in query__n_h:
-                if norm == p_norm and hash in passage_hashes:
-                    words_form += 1
+        # !!!!!!!!!!!
+        # words_form = 0.
+        # for p_norm, p_group in itertools.groupby(passage, key=itemgetter(0)):
+        #     # for norm, group in itertools.groupby(query__n_h, key=itemgetter(0)):
+        #     hashes = passage
+        #     for norm, hash in query__n_h:
+        #         if norm == p_norm and hash in passage_hashes:
+        #             words_form += 1
 
         all_trs, eq_trs = 0, 0
-        transpositions = itertools.combinations(len(query_words), 2)
+        transpositions = itertools.combinations(len(query__n_h), 2)
         for i,j in transpositions:
-            if query_words[i] == passage[i] and \
-               query_words[j] == passage[j]:
+            if query__n_h[i][0] == passage[i] and \
+               query__n_h[j][0] == passage[j]:
                 eq_trs += 1
             all_trs += 1
         words_order = eq_trs / all_trs
@@ -196,6 +192,9 @@ class TextSearch(object):
         doc_text.sort(key=itemgetter(1))
 
         doc_passages = self.sliding_window(query_norms, doc_text)
+
+        # !!!
+        query_norms = list(set(query_norms))
 
         doc_passages_ranges = []
         for i, passage in enumerate(doc_passages):
