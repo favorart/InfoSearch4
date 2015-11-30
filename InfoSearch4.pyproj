@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bab21737-7e1f-44e4-a1ad-5836c067fb28</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>bm25.py</StartupFile>
+    <StartupFile>Search\TestMarks.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -13,7 +13,7 @@
     <Name>InfoSearch4</Name>
     <RootNamespace>InfoSearch4</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-s 9 -e -d povarenok1000s_reduced_s.txt</CommandLineArguments>
+    <CommandLineArguments>-s 9 -e -d is4_all_povarenok_s/povarenok_all_reduced_s.txt</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
@@ -26,35 +26,44 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="back.py">
+    <Compile Include="archive\BitsFlow.py" />
+    <Compile Include="archive\fib_archive.py" />
+    <Compile Include="archive\s9_archive.py" />
+    <Compile Include="back\back.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="bm25.py">
+    <Compile Include="Search\BlackSearch.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="BoolSearch.py" />
-    <Compile Include="map_is4.py" />
-    <Compile Include="Passage.py">
+    <Compile Include="Search\BoolSearch.py" />
+    <Compile Include="map-red\map_is4.py" />
+    <Compile Include="Search\TextSearch.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="red_is4.py" />
-    <Compile Include="red_is4_old.py" />
-    <Compile Include="ReShape.py" />
-    <Compile Include="ReShape_old.py" />
-    <Compile Include="sort.py">
+    <Compile Include="map-red\red_is4.py" />
+    <Compile Include="back\red_is4_old.py" />
+    <Compile Include="map-red\reshape.py" />
+    <Compile Include="back\reshape_old.py" />
+    <Compile Include="map-red\sort.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TestMarks.py">
+    <Compile Include="Search\TestMarks.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="utils.py">
+    <Compile Include="Search\utils.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="run.bat" />
-    <Content Include="run_is4.sh" />
+    <Content Include="map-red\start.bat" />
+    <Content Include="map-red\start.sh" />
     <Content Include="using.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="back\" />
+    <Folder Include="map-red\" />
+    <Folder Include="archive\" />
+    <Folder Include="Search\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

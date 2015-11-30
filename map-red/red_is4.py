@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin python
 # -*- coding: utf-8 -*-
 
 from base64 import b64encode
@@ -29,52 +29,44 @@ else:
     use_hashes = False
 
 
+Ls = []
+
 sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
-# codecs.open('data/povarenok1000_mapped.txt', 'r', encoding='utf-8')), 
 for word, group in groupby((line.strip().split('\t', 1) for line in sys.stdin), itemgetter(0)):
 
     if  word == u'$':
                 
         docs = [ ( int(g[1].split('\t')[0]), int(g[1].split('\t')[1]) ) for g in group ]
         del group
-
-        N = len(docs)                     # число документов
-        Ls = array('i', [0] * (N + 1))    # длины документов
-
-        Ls[0] = N
-        for doc_id, doc_len in docs:
-            Ls[doc_id + 1] = doc_len
-        del docs
-
-        coded = archiver.code(Ls)
-        del Ls
-
-        print u'$\t%s' % ( b64encode(coded) )
-        del coded
+                
+        Ls += docs   # doc_id, doc_len
 
     else:
         ids_and_pos_lens = []
 
-        for id, new_group in groupby((g[1].strip().split('\t') for g in group), itemgetter(0)):
+        for id, new_group in groupby((g[1].strip().split('\t') for g in group  if len(g) > 1), itemgetter(0)):
             if use_hashes:
 
-                posits_and_hashes = [ (int(g[1]), int(g[2])) for g in new_group ]
+                posits_and_hashes = [ (int(g[1]), int(g[2])) for g in new_group  if len(g) >= 3 ]
                 del new_group
+
+                if not len(posits_and_hashes): continue
 
                 posits_and_hashes.sort(key=itemgetter(0))
                 posits, hashes = zip(*posits_and_hashes)
                 del posits_and_hashes
 
             else:
-                posits = [ int(g[1]) for g in new_group ]
+                posits = [ int(g[1]) for g in new_group  if len(g) >= 2 ]
                 del new_group
                 posits.sort()
 
             # coordinates
             posits = list(posits)
-            for i in xrange(len(posits) - 1, 0, -1):
-                posits[i] -= posits[i-1]
+            if len(posits) > 1:
+                for i in xrange(len(posits) - 1, 0, -1):
+                    posits[i] -= posits[i-1]
         
             ids_and_pos_lens.append( (int(id), len(posits)) )
 
@@ -93,13 +85,15 @@ for word, group in groupby((line.strip().split('\t', 1) for line in sys.stdin), 
             del coded_pos
 
         ids_and_pos_lens.sort(key=itemgetter(0))
+        if not ids_and_pos_lens: continue
         ids, len_posits = zip(*ids_and_pos_lens)
         del ids_and_pos_lens
 
         # document ids shifting
         ids = list(ids)
-        for i in xrange(len(ids) - 1, 0, -1):
-            ids[i] -= ids[i-1]
+        if  len(ids) > 1:
+            for i in xrange(len(ids) - 1, 0, -1):
+                ids[i] -= ids[i-1]
 
         coded_ids  = archiver.code(ids)
         coded_lens = archiver.code(len_posits)
@@ -107,4 +101,23 @@ for word, group in groupby((line.strip().split('\t', 1) for line in sys.stdin), 
 
         print u'%s\t%s\t%s\t%s' % (word, 0, b64encode(coded_ids), b64encode(coded_lens))
         del coded_ids, coded_lens
+
+
+if Ls:
+    Ls.sort(key=itemgetter(0))
+    ids, lens = zip(*Ls)
+    del Ls
+
+    ids = list(ids)
+    if  len(ids) > 1:
+        for i in xrange(len(ids) - 1, 0, -1):
+            ids[i] -= ids[i-1]
+
+    to_code = [ len(ids) ] + ids + list(lens)
+    del ids, lens
+
+    coded = archiver.code(to_code)
+    del to_code
+    print u'$\t%s' % ( b64encode(coded) )
+    del coded
 

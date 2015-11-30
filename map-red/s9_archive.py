@@ -64,7 +64,8 @@ class Simple9Archiver(object):
                     index += self.counts[n - 1]
                     break
 
-            else: raise ValueError
+            else:
+                raise ValueError
         return bw.getbytes()
 
     def  decode(self, data, verbose=False):

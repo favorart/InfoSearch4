@@ -239,5 +239,12 @@ $RECYCLE.BIN/
 *.doc
 *.docx
 *.xlsx
-/data/*
-/marks/*
+data1/*
+data/*
+marks/*
+is4_all_povarenok_s/*
+is2/*
+back/*
+archive/*
+*.bin
+*.txt

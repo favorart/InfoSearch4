@@ -6,7 +6,7 @@ hadoop run_is4.sh
 
 #  !!! Сжатию Фибоначчи нужно задать правильный параметр =
 #  !!! = количеству IDшников URLов, которые нужно записать в индекс.
-#  !!! МАКСИМАЛЬНОЕ ЧИСЛО ФИБОНАЧЧИ, которые надо перподсчитать!
+#  !!! МАКСИМАЛЬНОЕ ЧИСЛО ФИБОНАЧЧИ, которые надо преподсчитать!
 
 python      reshape.py <-f <max>|-s 9> <in_data_path> <out_binary_path> <out_index_path>
 python  InfoSearch4.py <-f <max>|-s 9> <in_binary_path> <in_index_path> <in_urls_path>
@@ -18,33 +18,26 @@ type data\povarenok1000_mapped1.txt | python sort.py > data\povarenok1000_mapped
 
 python reshape.py -s 9 -e -d data\povarenok1000s_reduced_s.txt
 
+python BoolSearch.py -w is2 -i index.txt -b backward.bin -u urls.txt
+
 -------------------------------------------------------------------------------------------
-index.txt format:
-	norm [offset:size:len ids] [[offset:size] [offset:size] ...]
+Files format:
 
-backward.bin
-norm [ids] [pos:word_form] [pos:word_form]
+dlens.txt:     N    id,len id,len ...
+index.txt:     { norm : { "ids": [offset:size], "lens": [offset:size],
+                          "posits": [offset,size,size,...], "hashes": [offset,size,size,...] }
+backward.bin:  for one norm [ids] + [lens] + [posits] + [hashes]
 -------------------------------------------------------------------------------------------
 
-Отдельно координаты и отдельно doc_ids,
-чтобы можно было раздельно поднимать
-
-
-Прогнать marks булевым поиском
-         marks поднимаются вообще? --> M
-
-не поднимаются
-
-Прогнать marks черновым ранжированием
-         найти границу - >80% marks появляются в выдаче --> N
-Прогнать marks пассажным алгоритмом
+v Отдельно координаты и отдельно doc_ids, чтобы можно было раздельно поднимать
+v Прогнать marks булевым поиском marks поднимаются вообще? AND --> 251
+v Прогнать marks черновым ранжированием, найти границу - >80% marks появляются в выдаче --> N
+v Прогнать marks пассажным алгоритмом
 
 
 'AND'.join([ 'OR'.join(('word1')), 'OR'.join(('word2', 'syn1', ...)), ... ])
-? неправильная раскладка
-	прогнать
-? список стоп слов
-	вместе со стоп словами и без стоп словами
+v неправильная раскладка, прогнать инвертированно
+v список стоп слов, вместе со стоп словами и без стоп словами
 
-?много-процессность?
+- ?много-процессность?
 

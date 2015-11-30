@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from itertools import groupby
 from operator import itemgetter
 
@@ -15,11 +15,11 @@ import sys
 import os
 
 
-import zipimport
-importer = zipimport.zipimporter('bs123.zip')
+# import zipimport
+# importer = zipimport.zipimporter('bs123.zip')
 
 
-def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, verbose=False):
+def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, use_json=True, verbose=False):
     """ Create the tree files:
         
         1. ( N_+_documents_lengthes )
@@ -30,7 +30,7 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, v
         with codecs.open(ndx_name, 'w', encoding='utf-8') as f_index:
             with codecs.open(dat_name, 'r', encoding='utf-8') as f_data:
 
-                print >>f_index, '{'
+                if use_json: print >>f_index, '{'
                 for word, group in groupby((line.strip().split('\t') for line in f_data), key=itemgetter(0)):
 
                     word_ids = False
@@ -38,22 +38,31 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, v
 
                     if word != '$':
                         index = {}
-                        print >>f_index, '\t"%s" : ' % word
+
+                        if use_json: print >>f_index, '\t"%s" : ' % word
                         # gs = sorted(group, key=lambda x: int(x[1]))
                         gs = group
                     else:
                         gs = group
 
                     for g in gs:
-                        splt = g[1:] # .strip().split('\t')
+                        splt = g[1:]
 
                         # 1. ( N    documents lengthes )
                         if (len(splt) == 1) and (word == u'$'):
                             coded = splt[0]
                 
                             decoded = archiver.decode(b64decode(coded))
+
+                            N = decoded[0]
+                            ids = decoded[1:N+1]
+                            lens = decoded[N+1:]
+
+                            for i in xrange(1,len(ids)):
+                                ids[i] += ids[i-1]
+
                             with open(len_name, 'w') as f_dlen:
-                                print >>f_dlen, '%d\t%s' % ( decoded[0], ' '.join([ str(d) for d in decoded[1:] ]) ),
+                                print >>f_dlen, '%d\t%s' % ( N, ' '.join([ '%d,%d' % (did, dlen) for did, dlen in zip(ids, lens) ]) ),
             
                             del coded, decoded
 
@@ -115,30 +124,50 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, v
                     
                     if word != '$':
                         # ('offset', 'size')
+                        
                         # Уточняем количество
-                        index['posits'] = (index['posits'][0], sum(pos_lens))
+                        shifts = [ index['posits'][0] ]
+                        for len_p in pos_lens:
+                            shifts.append( len_p ) # shifts[-1] + 
+                        index['posits'] = b64encode(archiver.code(shifts))
+                        del shifts
+                        # size = shifts[i+1] - shifts[i]
 
                         # В конце хэши
-                        index['hashes'] = (f_bin.tell(), sum([ len(h) for h in hss ]))
+                        shifts = [ f_bin.tell() ]
+                        for h in hss:
+                            shifts.append( len(h) ) # shifts[-1] + 
+                        index['hashes'] = b64encode(archiver.code(shifts))
                         # Записываем их в бинарный файл
                         for h in hss: f_bin.write(h)
+                        # size = shifts[i+1] - shifts[i]
                         del hss
 
-                        print >>f_index, json.dumps(index, sort_keys=True, indent=2,
-                                                    ensure_ascii=False, encoding='utf-8'), ','
-                print >>f_index, '\n\n"" : [] }\n'
+                        if use_json:
+                            print >>f_index, json.dumps(index, sort_keys=True, indent=2,
+                                                        ensure_ascii=False, encoding='utf-8'), ','
+                        else:
+                            print >>f_index, u'%s\t%s' % (word, u' '.join( u'%s,%d,%d' % (k,v[0],v[1]) if k in ["ids","lens"]
+                                                                        else u'%s,%s' % (k,v)  for k,v in index.items()))
+                if use_json:
+                    print >>f_index, '\n\n"" : [] }\n'
+
 
 import utils
+import fib_archive
+import s9_archive
+
+
 if __name__ == '__main__':
 
     args = utils.parse_args()
 
     if  args.fib:
-        fib_archive = importer.load_module('fib_archive')
+        # fib_archive = importer.load_module('fib_archive')
         archiver = fib_archive.FibonacciArchiver(args.fib)
 
     elif args.s9:
-        s9_archive = importer.load_module('s9_archive')
+        # s9_archive = importer.load_module('s9_archive')
         archiver =  s9_archive.Simple9Archiver()
 
     reshape(args.dat_name, args.ndx_name, args.bin_name, args.len_name,
