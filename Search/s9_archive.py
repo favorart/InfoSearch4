@@ -65,7 +65,7 @@ class Simple9Archiver(object):
                     break
 
             else:
-                with open("s9_err.txt", 'a') as f_err:
+                with open("s9_err.txt", 'a+') as f_err:
                     print >>f_err, data, '\n'
                 raise ValueError
         return bw.getbytes()

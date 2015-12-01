@@ -5,7 +5,7 @@ from base64 import b64decode
 from zlib import decompress
 
 import pymorphy2
-import hashlib
+# import hashlib
 import codecs
 import sys
 import re
@@ -21,7 +21,7 @@ class MyLex(object):
     def __init__(self):
         """ """
         self.morph = pymorphy2.MorphAnalyzer()
-        self.hasher = hashlib.md5()
+        # self.hasher = hashlib.md5()
         self.hash_len = 251
 
         # self.min_word_len = 3
@@ -44,9 +44,10 @@ class MyLex(object):
         # if len(word) >= self.min_word_len:
         norm = self.morph.parse(word)[0].normal_form
 
-        self.hasher.update(word.encode('utf-8'))
-        hash = int(self.hasher.hexdigest(), 16) % self.hash_len
-        
+        # self.hasher.update(word.encode('utf-8'))
+        # hash = int(self.hasher.hexdigest(), 16) % self.hash_len
+        hash = sum(map(ord,word)) % self.hash_len
+
         return  (norm, hash)
 
 

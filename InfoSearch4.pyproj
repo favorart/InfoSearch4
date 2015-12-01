@@ -13,7 +13,7 @@
     <Name>InfoSearch4</Name>
     <RootNamespace>InfoSearch4</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-s 9 -e -d is4_all_povarenok_s/povarenok_all_reduced_s.txt</CommandLineArguments>
+    <CommandLineArguments>-s 9 -e -i all_index/povarenok_all_index.txt -b all_index/povarenok_all_s_backward.bin -l all_index/povarenok_all_dlens.txt -o all_index/povarenok_all_ranked.txt -u C:\\data\\povarenok.ru\\all\\urls.txt</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
@@ -32,6 +32,9 @@
     <Compile Include="back\back.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="map-red\reshape2.py" />
+    <Compile Include="map-red\reshape1.py" />
+    <Compile Include="map-red\utils.py" />
     <Compile Include="Search\BlackSearch.py">
       <SubType>Code</SubType>
     </Compile>
@@ -42,7 +45,6 @@
     </Compile>
     <Compile Include="map-red\red_is4.py" />
     <Compile Include="back\red_is4_old.py" />
-    <Compile Include="map-red\reshape.py" />
     <Compile Include="back\reshape_old.py" />
     <Compile Include="map-red\sort.py">
       <SubType>Code</SubType>

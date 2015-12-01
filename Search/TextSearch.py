@@ -6,11 +6,7 @@ import sys
 import copy
 import codecs
 import itertools
-import numpy as np
 from operator import itemgetter
-
-import zipimport
-importer = zipimport.zipimporter('bs123.zip')
 
 from BlackSearch import BlackSearch, BooleanSearch
 
@@ -31,22 +27,23 @@ class TextSearch(object):
         Итоговый ранг: вес(tf-idf) + вес(пассажного алгоритма)   (+ вес(парного tf-idf))
     """
     def __init__(self, br,
-                 stp_name='./data/StopWords.txt',
-                 syn_name='./data/RusSyn.txt'):
+                 stops_filename='./data/StopWords.txt',
+                 use_synonyms=False,
+                 synonyms_filename='./data/RusSyn.txt'):
         """ Constructor """
         self.min_len_meanful_word = 3
-        with codecs.open(stp_name, 'r', encoding='utf-8') as f_stops:
+        with codecs.open(stops_filename, 'r', encoding='utf-8') as f_stops:
             self.stops = set(map(lambda line: line.strip().rstrip('\n'), f_stops.readlines() ))
 
-        self.syns = {}
-        with codecs.open(syn_name, 'r', encoding='utf-8') as f_syn:
-            for line in f_syn:
-                splt = line.rstrip().split(u'|')
-                if splt > 1:
-                    word = splt[0]
-                    norm = mylex.norm(word)
-                    syns[norm] = splt.split(u',')
-                    syns[norm].insert(word)
+        self.use_synonyms = use_synonyms
+        if  use_synonyms:
+            self.syns = {}
+            with codecs.open(synonyms_filename, 'r', encoding='utf-8') as f_syn:
+                for line in f_syn:
+                    splt = line.rstrip().split(u'|')
+                    if splt > 1:
+                        norm = br.lex.norm(splt[0])
+                        self.syns[norm] = list(set([norm] + splt[1].split(u',')))
         self.br = br
 
     def filter_by_stops(self, query_norms):
@@ -60,82 +57,107 @@ class TextSearch(object):
                 stops.append(norm)
         return  (means, stops)
 
-    def formulate_request(self, query, use_synonyms):
-        """ Bool Search string """
-        query__n_h = [ self.lex.normalize(word) for word in query.lower().split() ]
-        query_norms = map(itemgetter(0),query__n_h)
+    def formulate_request(self, query):
+        """ Bool Search string
+        
+            Returns uniq_query_norms, query_norms_hashes, request
+        """
+        # Ordered query
+        query__n_h = [ self.br.lex.normalize(word) for word in query.lower().split() ]
+        # unique non-ordered normal forms of word in query
+        query_norms = list(set(map(itemgetter(0),query__n_h)))
 
         query_means, query_stops = self.filter_by_stops(query_norms)
-
-        if  use_synonyms:
+        
+        query_syns = []
+        if  self.use_synonyms:
+            query_syns
             for i in xrange(len(query_means)):
                 norm = query_means[i]
                 try:
-                    syns = self.syns[norm]
+                    # Append synonims to request
+                    query_syns += self.syns[norm]
                 except: continue
-                syns = list(set(syns + [norm]))
-                # Append synonims to request
-                query_means[i] = ' OR '.join(syns)
 
-        joined_means = u' AND '.join(query_means)
-        joined_norms = u' AND '.join(query_norms)
-
-        joined_query = u' OR '.join([ joined_means, joined_norms ])
-        return (query_norms, query__n_h, joined_query)
+        request = query_means + query_stops + query_syns
+        return (query__n_h, query_means, request)
                             
     def search(self, query, max_n_docs=1000, use_synonyms=False):
         """ Returns the  doc_scores: (doc_id, total_rank) """
-        query_norms, query__n_h, request = self.formulate_request(query)
+        query__n_h, query_means, request = self.formulate_request(query)
 
-        inv_q = self.lex.incorrect_keyboard_layout(query)
+        inv_q = self.br.lex.incorrect_keyboard_layout(query)
         if inv_q:
-            inv_request = self.formulate_request(inv_q)
-            request = inv_request + ' OR ' + request
+            inv_q__n_h, inv_q_means, inv_q_req = self.formulate_request(inv_q)
+            # Append inversed to request line
+            query__n_h += inv_q__n_h
+            query_means += inv_q_means
+            request += inv_q_req
 
-        request_words = request.split(' ')
-        query_index, indexed_doc_ids = self.br.search_docs(request_words)
-        # query_index = { norm: [ "ids", "lens", "posits", "hashes" ], ... }
+        query_index, indexed_doc_ids = self.br.search(request,
+                                                      up=["ids", "lens", "posits", "hashes"],
+                                                      verbose=True)
+        # query_index  is  { norm: [ "ids", "lens", "posits", "hashes" ], ... }
+        query_norms = query_index.keys()
+        query__n_h = [ (norm, hash)  for norm, hash in query__n_h  if norm in query_norms ]
 
-        tfs, idfs  = self.br.tf_idf(query_index)
-        doc_scores = self.br.ranking(query_index, indexed_doc_ids, tfs, idfs)
+        # If there are STOPs - OK, if not, it is also OK!
+        intersect_doc_ids = set(indexed_doc_ids)
+        for word, index in query_index.items():
+            if word in query_means:
+                intersect_doc_ids &= set(index['ids'])
+        # ?? synonyms
+
+        # if  intersect_doc_ids < 10:
+        #     intersect_doc_ids = indexed_doc_ids
+
+        tfs, idfs  = self.br.tf_idf(query_index, intersect_doc_ids)
+        doc_scores = self.br.ranking(query_norms, query_index, intersect_doc_ids, tfs, idfs)
 
         # choose documents to ranking by passage algorithm
         doc_bm25_scores = doc_scores[:max_n_docs]
 
         doc_pssg_scores = []
-        for doc_id in [ id for id, score in doc_bm25_scores ]:
-            best_passage_rank = self.ranking(doc_id)
+        for doc_id, score in doc_bm25_scores:
+            best_passage_rank = self.ranking(query_norms, query__n_h,
+                                             query_index, doc_id,
+                                             tfs, idfs)
             doc_pssg_scores.append( (doc_id, best_passage_rank) )
 
         doc_pssg_scores.sort(key=itemgetter(0))
         doc_bm25_scores.sort(key=itemgetter(0))
 
-        doc_scores = (doc_pssg_scores + doc_bm25_scores) # total rank
+        # total rank
+        doc_scores = map(lambda x, y: (x[0], x[1] + y[1]), doc_pssg_scores, doc_bm25_scores)
         doc_scores.sort(key=itemgetter(1), reverse=True)
-        return  doc_scores
+        return  [ doc_id for doc_id, score in doc_scores ]
 
-    def sliding_window(self, query_norms, doc_text):
-        """ """
-        N = len(query_words)
-
+    def sliding_window(self, query__n_h, doc_text):
+        """ Скользяцее окно """
         passages = []
-        for item in doc_text:
-            passage = []
+        N = len(query__n_h)
 
-            # item: norm, posit, hash
-            if len(passage) == N:
-                for i in len(passage):
-                    if passage[i][0] == item[0]:
+        passage = []
+        norms_psg = set()
+        for norm, posit, hash in doc_text:
+
+            if  norm in norms_psg:
+                for i in xrange(len(passage)):
+                    if passage[i][0] == norm:
                         del passage[i]
                         break
-                else: del passage[0]
+            else:
+                norms_psg.add(norm)
 
-            passage.append(item)
+            if len(passage) == N:
+                in_psg.remove(passage[0][0])
+                del passage[0]
+            
+            passage.append( (norm, posit, hash) )
             passages.append( copy.copy(passage) )
-
         return passages
 
-    def passage_rank(self, passage, query__n_h, uniq_query_norms, doc_id):
+    def passage_rank(self, passage, passage_norms, query_norms, query__n_h, doc_id):
         """ Каждый пассаж численно оценивается по следующим показателям:
             •	Полнота:      %слов из запроса в пассажей, все ли слова представлены
             •	Расстояние    от начала документа
@@ -146,62 +168,59 @@ class TextSearch(object):
             Returns the vector of passage characteristics
             -->  maximaze to get the best
         """
-        query_norms = uniq_query_norms
         # passage item: norm, posit, hash
-        psg_norms, psg_posits, psg_hashes = zip(*passage)
+        fullness = float(len(passage_norms)) / len(query_norms)
 
-        fullness = sum([ float(norm in psg_norms) for norm in query_norms ]) / len(query_norms)
-
-        psg_range = passage[-1][1] - passage[0][1]
-        compactness = float(psg_range - len(passage)) / psg_range
+        psg_range = (passage[-1][1] - passage[0][1]) + 1.
+        psg_range = float(len(passage) if psg_range < len(passage) else psg_range)
+        compactness = 1. - (psg_range - len(passage)) / psg_range
 
         len_text = self.br.doc_lens[doc_id]
-        close2start = float(passage[0][1]) / len_text
+        close2start = 1. - float(passage[0][1]) / len_text
 
-        # !!!!!!!!!!!
-        # words_form = 0.
-        # for p_norm, p_group in itertools.groupby(passage, key=itemgetter(0)):
-        #     # for norm, group in itertools.groupby(query__n_h, key=itemgetter(0)):
-        #     hashes = passage
-        #     for norm, hash in query__n_h:
-        #         if norm == p_norm and hash in passage_hashes:
-        #             words_form += 1
+        words_form = 0.
+        forms = [ (n,h) for n,p,h in passage ]
+        for norm,hash in query__n_h:
+            if (norm,hash) in forms:
+                forms.remove( (norm,hash) )
+                words_form += 1.
+        words_form /= len(query__n_h)
 
-        all_trs, eq_trs = 0, 0
-        transpositions = itertools.combinations(len(query__n_h), 2)
-        for i,j in transpositions:
-            if query__n_h[i][0] == passage[i] and \
-               query__n_h[j][0] == passage[j]:
-                eq_trs += 1
-            all_trs += 1
-        words_order = eq_trs / all_trs
-
+        all_trs, eq_trs = 0., 0.
+        q_transpositions = itertools.combinations(range(len(query__n_h)), 2)
+        p_transpositions = itertools.combinations(range(len(passage)), 2)
+        for i,j in q_transpositions:
+            for p,q in p_transpositions:
+                if  query__n_h[i][0] == passage[p][0] and \
+                    query__n_h[j][0] == passage[q][0]:
+                    eq_trs += 1.
+                all_trs += 1.
+        words_order = eq_trs / all_trs if all_trs else 0.
         # --> max
         return (fullness, compactness, close2start, words_form, words_order)
 
-    def ranking(self, query__n_h, query_norms, query_index, doc_id, tfs, idfs):
+    def ranking(self, query_norms, query__n_h, query_index, doc_id, tfs, idfs):
         """ """
         doc_text = []
         for word, index in query_index.items():
             try:
                 doc_index = index["ids"].index(doc_id)
             except: continue
-            posits, hashes = self.br.bs.decode_posits_and_hashes_for_doc(query_index, doc_index)
-            doc_text += zip([word] * len(posits), posits, hashes)
+            posits, hashes = self.br.bs.decode_posits_and_hashes_for_doc(index, doc_index)
+            doc_text += zip([word] * min(len(posits), len(hashes)), posits, hashes)
 
         doc_text.sort(key=itemgetter(1))
 
-        doc_passages = self.sliding_window(query_norms, doc_text)
-
-        # !!!
-        query_norms = list(set(query_norms))
+        doc_passages = self.sliding_window(query__n_h, doc_text)
 
         doc_passages_ranges = []
         for i, passage in enumerate(doc_passages):
+            passage_norms = list(set([ n for n,p,h in passage ]))
 
-            tf_idf = self.br.rank_docs(answer, [doc_id], tfs, idfs)
-            vector = self.passage_rank(passage, query__n_h, query_norms, doc_id)
-            vector.append(tf_idf)
+            doc_score = self.br.ranking(passage_norms, query_index, [doc_id], tfs, idfs)
+            doc, tf_idf = doc_score[0]
+
+            vector = self.passage_rank(passage, passage_norms, query_norms, query__n_h, doc_id)
             # НОРМИРОВАННЫЕ ВЕЛИЧИНЫ:
             #   1. Полнота
             #   2. Компактность
@@ -212,7 +231,7 @@ class TextSearch(object):
             # Итоговый ранк пассажа, как линейная комбинация
             # параметров пассажа с коэффициентами = 1.
             # --->> MAXIMIZE
-            doc_passages_ranges.append(sum(vector)) # , i)
+            doc_passages_ranges.append( sum(vector) + tf_idf )
             
         doc_passages_ranges.sort(reverse=True)
         return  doc_passages_ranges[0]

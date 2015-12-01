@@ -1,18 +1,21 @@
-﻿#!/usr/bin/env python
+﻿#!/usr/bin python
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict
 from base64 import b64decode, b64encode
 
 import pymorphy2
-import pprint
+# import pprint
 import codecs
 import json
 import sys
+sys.path.insert(0, 'archive')
+
 import re
 
-import zipimport
-importer = zipimport.zipimporter('bs123.zip')
+import utils
+import s9_archive
+import fib_archive
 
 
 class BooleanSearch(object):
@@ -52,7 +55,7 @@ class BooleanSearch(object):
         posits, coded = index['posits']
 
         b,e = posits[doc_index], posits[doc_index + 1]
-        decoded_posits = self.archiver.decode(coded[b:e])
+        decoded_posits = self.archiver.decode(coded[b:b+e])
         
         for i in xrange(1, len(decoded_posits)):
             decoded_posits[i] += decoded_posits[i-1]
@@ -60,9 +63,9 @@ class BooleanSearch(object):
         hashes, coded = index['hashes']
 
         b,e = hashes[doc_index], hashes[doc_index + 1]
-        decoded_hashes = self.archiver.decode(coded[b:e])
+        decoded_hashes = self.archiver.decode(coded[b:b+e])
         # ---------------------------------------------------
-        return  (doc_index, decoded_posits, decoded_hashes)
+        return  (decoded_posits, decoded_hashes)
 
     def extract(self, query_norms,
                 up=['ids', 'lens', 'posits', 'hashes'],
@@ -79,7 +82,8 @@ class BooleanSearch(object):
                     if verbose:
                         if sys.platform.startswith('win'):
                             print '---', norm.encode('cp866', 'ignore')
-                        else: print'---', norm
+                        else:
+                            print '---', norm
                     continue
 
                 answer[norm] = {}
@@ -99,31 +103,40 @@ class BooleanSearch(object):
                         answer[norm][key] = decoded
 
                     else:
-                        data = self.archiver.decode( b64decode(dic[key]) )
+                        offset, data = dic[key]
+                        sizes = self.archiver.decode( b64decode(data) )
+                        # print decoded
+                        size = sum(sizes)
 
-                        offset, size = data[0], (data[-1] - data[0])
                         f_backward.seek(offset)
                         coded = f_backward.read(size)
 
-                        data[0] = 0 # forget ftell
-                        answer[norm][key] = (data, coded)
+                        answer[norm][key] = ([0] + sizes, coded)
         return answer
 
-    def search(self, query_norms):
+    def search(self, query_norms, verbose=False):
         """ Boolean Search by query """
         oper = ''
         answer = set()
+
         with open(self.bin_name, 'rb') as f_backward:
             for norm in query_norms:
+
                 if  norm in ['AND', 'OR', 'NOT']:
                     oper = norm
+
                 else:
+
                     try:
                     # if 1:
                         offset, size = self.word_index[norm]['ids']
                         # offset, size = self.w_offsets[norm]
                     except:
-                        print norm.encode('cp866', 'ignore')
+                        if verbose:
+                            if sys.platform.startswith('win'):
+                                print '---', norm.encode('cp866', 'ignore')
+                            else:
+                                print'---', norm
                         continue
 
                     f_backward.seek(offset)
@@ -145,17 +158,13 @@ class BooleanSearch(object):
         return list(answer)
 
 
-import utils
 if __name__ == '__main__':
 
     args = utils.parse_args()
 
     if  args.fib:
-        fib_archive = importer.load_module('fib_archive')
         archiver = fib_archive.FibonacciArchiver(args.fib)
-
     elif args.s9:
-        s9_archive = importer.load_module('s9_archive')
         archiver =  s9_archive.Simple9Archiver()
 
     morph = pymorphy2.MorphAnalyzer()

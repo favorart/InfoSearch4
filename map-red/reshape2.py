@@ -6,46 +6,42 @@ from itertools import groupby
 from operator import itemgetter
 
 import pymorphy2
-import argparse
-import hashlib
 import codecs
-import pprint
+# import pprint
 import json
+import time
 import sys
 import os
 
 
-# import zipimport
-# importer = zipimport.zipimporter('bs123.zip')
-
-
-def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, use_json=True, verbose=False):
+def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
+            use_hashes=True, use_json=True, verbose=False, fib_archiver=None):
     """ Create the tree files:
         
         1. ( N_+_documents_lengthes )
         2. ( norm  offset  size_ids   [sizes_posits]   [sizes_hashes] )_concat-ed
         3. (backward_index_+_coords_+_hashes)_bin_archived_concat-ed
     """
+    quantity = 0
+    start_time = time.time()
     with open(bin_name, 'wb') as f_bin:
         with codecs.open(ndx_name, 'w', encoding='utf-8') as f_index:
-            with codecs.open(dat_name, 'r', encoding='utf-8') as f_data:
 
-                if use_json: print >>f_index, '{'
+            if use_json: print >>f_index, '{'
+            with codecs.open(dat_name, 'r', encoding='utf-8') as f_data:
                 for word, group in groupby((line.strip().split('\t') for line in f_data), key=itemgetter(0)):
+
+                    if not (quantity % 100):
+                        print >>sys.stderr, word.encode('cp866', 'ignore')
+                    quantity += 1
+
+                    # index_tell = f_index.tell()
+                    word_tell = f_bin.tell()
 
                     word_ids = False
                     pos_lens, hss = [], []
-
-                    if word != '$':
-                        index = {}
-
-                        if use_json: print >>f_index, '\t"%s" : ' % word
-                        # gs = sorted(group, key=lambda x: int(x[1]))
-                        gs = group
-                    else:
-                        gs = group
-
-                    for g in gs:
+                    index = {}
+                    for g in group:
                         splt = g[1:]
 
                         # 1. ( N    documents lengthes )
@@ -62,8 +58,8 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, u
                                 ids[i] += ids[i-1]
 
                             with open(len_name, 'w') as f_dlen:
-                                print >>f_dlen, '%d\t%s' % ( N, ' '.join([ '%d,%d' % (did, dlen) for did, dlen in zip(ids, lens) ]) ),
-            
+                                print >>f_dlen, '%d\t%s' % ( N, ' '.join([ '%d,%d' % (did, dlen)
+                                                                          for did, dlen in zip(ids, lens) ]) ),
                             del coded, decoded
 
                         # 2. json( word : (offset,size) )
@@ -99,7 +95,7 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, u
                                 f_bin.write(coded_lens)
                                 del coded_lens
 
-                                # Позиции
+                                # позиции
                                 index['posits'] = [f_bin.tell(), 0]
 
                                 word_ids = True
@@ -124,33 +120,53 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver, use_hashes=True, u
                     
                     if word != '$':
                         # ('offset', 'size')
-                        
-                        # Уточняем количество
-                        shifts = [ index['posits'][0] ]
-                        for len_p in pos_lens:
-                            shifts.append( len_p ) # shifts[-1] + 
-                        index['posits'] = b64encode(archiver.code(shifts))
-                        del shifts
-                        # size = shifts[i+1] - shifts[i]
+                        try:
+                            if 268435455 < index['posits'][0] - index['lens'][0]:
+                                print '!!!greater'
+                            # Уточняем количество позиции
+                            shifts = [ index['posits'][0] - index['lens'][0] ] + [ len_p for len_p in pos_lens ]
+                            index['posits'] = b64encode(archiver.code(shifts))
+                            del shifts, pos_lens
+                        except:
+                            with codecs.open('error.txt', 'a+', encoding='utf-8') as f_err:
+                                print >>f_err, '--', word, 'posits', index['posits'][0] - index['lens'][0], '\r\n', \
+                                               len(pos_lens), pos_lens, '\r\n\r\n'
+                            f_bin.seek(word_tell)
+                            # f_index.seek(index_tell)
+                            continue
 
-                        # В конце хэши
-                        shifts = [ f_bin.tell() ]
-                        for h in hss:
-                            shifts.append( len(h) ) # shifts[-1] + 
-                        index['hashes'] = b64encode(archiver.code(shifts))
-                        # Записываем их в бинарный файл
-                        for h in hss: f_bin.write(h)
-                        # size = shifts[i+1] - shifts[i]
-                        del hss
+                        try:
+                            if 268435455 < f_bin.tell() - index['posits'][0]:
+                                print '!!!greater'
+
+                            # В конце хэши
+                            shifts = [ f_bin.tell() - index['posits'][0] ] + [ len(h) for h in hss ]
+                            index['hashes'] = b64encode(archiver.code(shifts))
+                            # Записываем их в бинарный файл
+                            for h in hss: f_bin.write(h)
+                            del hss, shifts
+                            # size = shifts[i+1] - shifts[i]
+
+                        except:
+                            with codecs.open('error.txt', 'a+', encoding='utf-8') as f_err:
+                                print >>f_err, '--', word, 'hashes', f_bin.tell() - index['posits'][0], '\r\n', \
+                                                    len(hss), [ len(h) for h in hss ], '\r\n\r\n' 
+                            f_bin.seek(word_tell)
+                            # f_index.seek(index_tell)
+                            continue
 
                         if use_json:
+                            print >>f_index, '\t"%s" : ' % word
                             print >>f_index, json.dumps(index, sort_keys=True, indent=2,
                                                         ensure_ascii=False, encoding='utf-8'), ','
                         else:
                             print >>f_index, u'%s\t%s' % (word, u' '.join( u'%s,%d,%d' % (k,v[0],v[1]) if k in ["ids","lens"]
                                                                         else u'%s,%s' % (k,v)  for k,v in index.items()))
-                if use_json:
-                    print >>f_index, '\n\n"" : [] }\n'
+            if use_json: print >>f_index, '\n\n"" : [] }\n'
+
+    with codecs.open('error.txt', 'a+', encoding='utf-8') as f_err:
+        print >>f_err, "\n\n%d, %.3f sec" % (quantity, time.time() - start_time)
+    return
 
 
 import utils
@@ -162,14 +178,13 @@ if __name__ == '__main__':
 
     args = utils.parse_args()
 
-    if  args.fib:
-        # fib_archive = importer.load_module('fib_archive')
+    if   args.fib:
         archiver = fib_archive.FibonacciArchiver(args.fib)
-
     elif args.s9:
-        # s9_archive = importer.load_module('s9_archive')
         archiver =  s9_archive.Simple9Archiver()
 
+    # fib_archiver = fib_archive.FibonacciArchiver(args.fib * 100)
+
     reshape(args.dat_name, args.ndx_name, args.bin_name, args.len_name,
-            archiver=archiver, use_hashes=args.use_hashes)
+            archiver=archiver, use_hashes=args.use_hashes, fib_archiver=fib_archiver)
 

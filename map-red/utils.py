@@ -36,7 +36,7 @@ class MyLex(object):
 
         # self.hasher.update(word.encode('utf-8'))
         # hash = int(self.hasher.hexdigest(), 16) % self.hash_len
-        hash = map(ord, word) % self.hash_len
+        hash = sum(map(ord, word)) % self.hash_len
         
         return  (norm, hash)
 
@@ -69,65 +69,41 @@ def norm_url(url):
 
 def parse_args():
     """
-        -f  fib         = max_doc_id
-        -s  s9          = 9 | something - useless
-        
-        -e  use_hashes  = True | None
-        -w  work_folder = data
-        -p  prefix      = povarenok1000
+        -f  fib        = max_doc_id
+        -s  s9         = 9
 
-        -d  dat_name    = ./data/povarenok1000s_reduced_s.txt'
-        -b  bin_name    = ./data/povarenok1000_backward.bin'
-        -i  ndx_name    = ./data/povarenok1000_index.txt'
-        -l  len_name    = ./data/povarenok1000_dlens.txt'
+        -e  use_hashes = True | None
 
-        -r  blk_rank    = './data/povarenok1000_black_rank.txt'
-        -m  mrk_name    = 'C:\\data\\povarenok.ru\\all\\povarenok1000.tsv'
-        -u  url_name    = 'C:\\data\\povarenok.ru\\1_1000\\urls.txt'
+        -d  dat_name   = './data/povarenok1000s_reduced_s.txt'
+        -o  rnk_name   = './data/povarenok1000_ranked.txt'
+
+        -b  bin_name   = './data/povarenok1000_backward.bin'
+        -i  ndx_name   = './data/povarenok1000_index.txt'
+        -l  len_name   = './data/povarenok1000_dlens.txt'
+
+        -m  mrk_name   = 'C:\\data\\povarenok.ru\\all\\povarenok1000.tsv'
+        -u  url_name   = 'C:\\data\\povarenok.ru\\1_1000\\urls.txt'
     """
     parser = argparse.ArgumentParser()
-
-    # parser.add_argument('-w', dest='folder', action='store', type=str,  default='data')
-    parser.add_argument('-p', dest='prefix', action='store', type=str,  default='povarenok1000')
 
     parser.add_argument('-f', dest='fib', action='store', type=int,  default=0)
     parser.add_argument('-s', dest='s9',  action='store', type=int,  default=0)
 
     parser.add_argument('-e', dest='use_hashes', action='store_const', const=True)
 
-    parser.add_argument('-d', dest='dat_name',   action='store', type=str,  default=None)
-    parser.add_argument('-b', dest='bin_name',   action='store', type=str,  default=None)
-    parser.add_argument('-i', dest='ndx_name',   action='store', type=str,  default=None)
-    parser.add_argument('-l', dest='len_name',   action='store', type=str,  default=None)
-    parser.add_argument('-r', dest='blk_rank',   action='store', type=str,  default=None)
+    parser.add_argument('-d', dest='dat_name',   action='store', type=str,  default='./data/povarenok1000s_reduced_s.txt')
+    parser.add_argument('-o', dest='rnk_name',   action='store', type=str,  default='./data/povarenok1000_ranked.txt')
+
+    parser.add_argument('-b', dest='bin_name',   action='store', type=str,  default='./data/povarenok1000s_backward.bin')
+    parser.add_argument('-i', dest='ndx_name',   action='store', type=str,  default='./data/povarenok1000_index.txt')
+    parser.add_argument('-l', dest='len_name',   action='store', type=str,  default='./data/povarenok1000_dlens.txt')
+    
     parser.add_argument('-m', dest='mrk_name',   action='store', type=str,  default='C:\\data\\povarenok.ru\\all\\povarenok1000.tsv')
     parser.add_argument('-u', dest='url_name',   action='store', type=str,  default='C:\\data\\povarenok.ru\\1_1000\\urls.txt')
 
     args = parser.parse_args()
 
-    # if not os.path.exists(args.folder):
-    #     os.makedirs(args.folder)
-
     letter = ('f' if args.fib else ('s' if args.s9 else None))
     if not letter:  raise ValueError
-
-    # if args.prefix != 'povarenok1000' and not args.url_name:  raise ValueError
-
-    # if not args.dat_name: args.dat_name = (args.prefix + letter + '_' + 'reduced.txt')
-    # if not args.bin_name: args.bin_name = (args.prefix + letter + '_' + 'backward.bin')
-    # if not args.ndx_name: args.ndx_name = (args.prefix + letter + '_' + 'index.txt')
-    # if not args.len_name: args.len_name = (args.prefix + letter + '_' + 'dlens.txt')    
-    # if not args.blk_rank: args.blk_rank = (args.prefix + letter + '_' + 'black_rank.txt')
-
-    args.bin_name = 'backward.bin'
-    args.ndx_name = 'index.txt'
-    args.len_name = 'dlens.txt'
-    args.blk_rank = 'black_rank.txt'
-
-    # args.dat_name = args.folder + '/' + args.dat_name 
-    # args.bin_name = args.folder + '/' + args.bin_name
-    # args.ndx_name = args.folder + '/' + args.ndx_name
-    # args.len_name = args.folder + '/' + args.len_name
-    # args.blk_rank = args.folder + '/' + args.blk_rank
 
     return args
