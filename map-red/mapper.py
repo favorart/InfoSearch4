@@ -1,15 +1,18 @@
-#!/usr/bin python
+﻿#!/usr/bin python
 # -*- coding: utf-8 -*-
+
+from base64 import b64decode
+from zlib import decompress
 
 import codecs
 import sys
 import re
 
 
-is_word = re.compile(ur'\S')
+# Используем unicode в стандартных потоках io
 sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+# Просто зачитываем
 for line in sys.stdin:
-    splt = line.strip().split('\t', 1)
-    if len(splt[0]) > 0 and is_word.match(splt[0]):
-        print line
+    print line
+

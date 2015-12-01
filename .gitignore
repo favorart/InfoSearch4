@@ -231,7 +231,6 @@ $RECYCLE.BIN/
 *.pyc
 *.lnk
 *.pyc
-*.zip
 *.docx
 *.tsv
 *.csv
@@ -243,8 +242,10 @@ data1/*
 data/*
 marks/*
 is4_all_povarenok_s/*
+all_index/*
+map-red/*.zip
+map-red/*.txt
 is2/*
 back/*
 archive/*
 *.bin
-*.txt

@@ -22,7 +22,7 @@ class MyLex(object):
         """ """
         self.morph = pymorphy2.MorphAnalyzer()
         # self.hasher = hashlib.md5()
-        self.hash_len = 251
+        self.hash_len = 251   # простое число - математика
 
         # self.min_word_len = 3
         self.re_extract_words = re.compile(ur'[^a-zа-яё0-9]')
@@ -36,7 +36,7 @@ class MyLex(object):
         text = self.re_margin_spaces.sub(u'' , text)
     
         words = re.split(ur' ', text)
-        # words = filter(lambda w: len(w) >= self.min_word_len, words)
+        words = filter(lambda w: len(w) > 0, words)
         return  words
 
     def normalize(self, word):
@@ -47,11 +47,14 @@ class MyLex(object):
         # self.hasher.update(word.encode('utf-8'))
         # hash = int(self.hasher.hexdigest(), 16) % self.hash_len
         hash = sum(map(ord,word)) % self.hash_len
-
         return  (norm, hash)
 
 
+parser_lxml = True # True - 'lxml', False - python 'html.parser'
+
+
 mylex = MyLex()
+# unicode io
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 for line in sys.stdin:
     splt = line.strip().split()
@@ -60,22 +63,34 @@ for line in sys.stdin:
         id, doc = splt
         html = decompress(b64decode(doc))
     
-        try:
-            html = html.decode('utf8', 'ignore')
-            bs = bs4.BeautifulSoup(html, 'html.parser')
-            del html
+        if parser_lxml:
+            html = html.decode('utf-8', 'ignore')
+            bs = bs4.BeautifulSoup(html, 'lxml')
 
             # kill all script and style elements
             for script in bs(["script", "style"]):
                 script.extract() # rip it out
             text = u' '.join( bs.strings )
             del bs
-        except: continue
+
+        else:
+            try:
+                html = html.decode('utf-8', 'ignore')
+                bs = bs4.BeautifulSoup(html) # , 'html.parser')
+                del html
+
+                # kill all script and style elements
+                for script in bs(["script", "style"]):
+                    script.extract() # rip it out
+                text = u' '.join( bs.strings )
+                del bs
+            except: continue
 
         words = mylex.extract_words(text)
         del text
-        if len(words) > 0:
-            print u'$\t%06d\t%06d' % ( int(id), len(words) )
+
+        if  len(words) > 0:
+            print u'%s\t%06d\t%06d' % ( u'$', int(id), len(words) )
 
             for pos, word in enumerate(words):
                 norm, hash = mylex.normalize(word)

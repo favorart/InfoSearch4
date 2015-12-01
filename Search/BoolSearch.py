@@ -3,10 +3,12 @@
 
 from collections import defaultdict
 from base64 import b64decode, b64encode
+from operator import itemgetter
 
 import pymorphy2
 # import pprint
 import codecs
+import time
 import json
 import sys
 sys.path.insert(0, 'archive')
@@ -41,14 +43,23 @@ class BooleanSearch(object):
                             value = item.split(',')
                             dic[value[0]]= value[1] if len(value) < 3 else map(int, value[1:])
                         self.word_index[splt[0]] = dic
+
+        # # USING THE OLD INDEX
         # self.w_offsets = {}
         # with codecs.open(ndx_name, 'r', encoding='utf-8') as f_index:
         #     for line in f_index.readlines():
         #         word, offset, size = line.strip().split()
         #         self.w_offsets[word] = (int(offset), int(size))
+
         self.bin_name = bin_name
         self.ndx_name = ndx_name
         self.archiver = archiver
+
+        # Performance time to define
+        # caching or not the bin-read-index of word
+        self.time2cache=20. # in seconds
+        self.cache_max_len = 1
+        self.cache = {}
 
     def decode_posits_and_hashes_for_doc(self, index, doc_index):
         """ """
@@ -73,18 +84,30 @@ class BooleanSearch(object):
         """ Extract all data by query words """
         answer = {}
 
+        if  len(self.cache) >= self.cache_max_len:
+            half = self.cache_max_len / 2
+            items = self.cache.items().sort(key=lambda x: x[1][1], reverse=True)
+            self.cache = dict(items[:half])
+
         with open(self.bin_name, 'rb') as f_backward:
             for norm in query_norms:
 
-                try:
-                    dic = self.word_index[norm]
-                except:
+                if  norm in self.cache:
+                    answer[norm] = self.cache[norm][0]
+                    self.cache[norm][1] = time.time()
+                    continue
+    
+                if  norm not in self.word_index:
                     if verbose:
                         if sys.platform.startswith('win'):
                             print '---', norm.encode('cp866', 'ignore')
                         else:
                             print '---', norm
                     continue
+
+                dic = self.word_index[norm]
+                    
+                start_time = time.time()
 
                 answer[norm] = {}
                 for key in up:
@@ -112,6 +135,10 @@ class BooleanSearch(object):
                         coded = f_backward.read(size)
 
                         answer[norm][key] = ([0] + sizes, coded)
+
+                if (time.time() - start_time) > self.time2cache:
+                    self.cache[norm] = [ answer[norm], time.time() ]
+
         return answer
 
     def search(self, query_norms, verbose=False):

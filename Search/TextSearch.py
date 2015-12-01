@@ -108,9 +108,6 @@ class TextSearch(object):
                 intersect_doc_ids &= set(index['ids'])
         # ?? synonyms
 
-        # if  intersect_doc_ids < 10:
-        #     intersect_doc_ids = indexed_doc_ids
-
         tfs, idfs  = self.br.tf_idf(query_index, intersect_doc_ids)
         doc_scores = self.br.ranking(query_norms, query_index, intersect_doc_ids, tfs, idfs)
 

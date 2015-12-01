@@ -32,6 +32,18 @@
     <Compile Include="back\back.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="back\red_is4_old2.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="back\red_sort_old.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="map-red\mapper.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="map-red\red_sort.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="map-red\reshape2.py" />
     <Compile Include="map-red\reshape1.py" />
     <Compile Include="map-red\utils.py" />
@@ -46,9 +58,6 @@
     <Compile Include="map-red\red_is4.py" />
     <Compile Include="back\red_is4_old.py" />
     <Compile Include="back\reshape_old.py" />
-    <Compile Include="map-red\sort.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Search\TestMarks.py">
       <SubType>Code</SubType>
     </Compile>

@@ -62,6 +62,9 @@ class MyLex(object):
         else: new_string = None
         return new_string
 
+    def traslit(self, string, mode='2cyr'):
+        return
+
 
 def norm_url(url):
     return re.sub(r'^https?://(?:www\.|.*)?povarenok\.ru/|/?\r?\n?$', '', url)
@@ -75,7 +78,7 @@ def parse_args():
         -e  use_hashes = True | None
 
         -d  dat_name   = './data/povarenok1000s_reduced_s.txt'
-        -o  blk_rank   = './data/povarenok1000_black_rank.txt'
+        -o  blk_rank   = './data/povarenok1000_ranked.txt'
 
         -b  bin_name   = './data/povarenok1000_backward.bin'
         -i  ndx_name   = './data/povarenok1000_index.txt'

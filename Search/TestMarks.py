@@ -48,36 +48,43 @@ if __name__ == '__main__':
         with codecs.open(args.mrk_name, 'r', encoding='utf-8') as f_marks:
 
             total_time = time.time()
-            for i,line in enumerate(f_marks):
+            for it,line in enumerate(f_marks):
 
                 splt = line.split('\t')
                 if len(splt) != 2: continue
 
                 query, mark_url = splt[0], utils.norm_url(splt[1])
 
-                print "'%s'" % query
-                print >>f_ranks, "'%s'" % query
+                print "%3d '%s'" % (it, query),
+                print >>f_ranks, "%3d '%s'" % (it, query)
                 inv_q = ts.br.lex.incorrect_keyboard_layout(query)
                 if inv_q:
-                    print "'%s'" % query
-                    print >>f_ranks, "'%s'" % query
+                    print "\n    '%s'" % inv_q,
+                    print >>f_ranks, "'%s'" % inv_q
 
                 start_time = time.time()
                 answer = ts.search(query, 1000)
-                print "%.3f sec." % (time.time() - start_time)
+                print "\t%.3f sec." % (time.time() - start_time),
                 print >>f_ranks, "%.3f sec.\n" % (time.time() - start_time)
 
-                found_urls = '\n'.join([ urls[i] for i in answer ])
+                answer_urls = [ urls[i] for i in answer ]
+                found_urls = '\n'.join(answer_urls)
                 print >>f_ranks, '=', mark_url, '\n', found_urls
                 
                 if  mark_url in found_urls:
-                    print >>f_ranks, 'OK'
+                    try:
+                        print '\tOK (%d)' % answer_urls.index(mark_url)
+                    except:
+                        print '\tOK'
                     IS_IN += 1
                 else:
-                    print '---'
+                    print '\t---'
                     print >>f_ranks, '---\n\n'
 
+            print "\n%.3f sec." % (time.time() - total_time)
             print >>f_ranks, "\n%.3f sec.\n" % (time.time() - total_time)
+
+            print "IS_IN %d" % IS_IN
             print >>f_ranks, "IS_IN %d" % IS_IN
 
     print found
