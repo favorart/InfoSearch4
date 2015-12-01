@@ -58,7 +58,7 @@ class BooleanSearch(object):
         # Performance time to define
         # caching or not the bin-read-index of word
         self.time2cache=20. # in seconds
-        self.cache_max_len = 1
+        self.cache_max_len = 100
         self.cache = {}
 
     def decode_posits_and_hashes_for_doc(self, index, doc_index):
@@ -86,7 +86,8 @@ class BooleanSearch(object):
 
         if  len(self.cache) >= self.cache_max_len:
             half = self.cache_max_len / 2
-            items = self.cache.items().sort(key=lambda x: x[1][1], reverse=True)
+            items = self.cache.items()
+            items.sort(key=lambda x: x[1][1], reverse=True)
             self.cache = dict(items[:half])
 
         with open(self.bin_name, 'rb') as f_backward:
@@ -137,8 +138,9 @@ class BooleanSearch(object):
                         answer[norm][key] = ([0] + sizes, coded)
 
                 if (time.time() - start_time) > self.time2cache:
+                    # if verbose: print "arc. %.3f sec." % (time.time() - start_time),
                     self.cache[norm] = [ answer[norm], time.time() ]
-
+        # if verbose: print 'cach. %d' % len(self.cache)
         return answer
 
     def search(self, query_norms, verbose=False):

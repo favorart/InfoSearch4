@@ -26,9 +26,6 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="archive\BitsFlow.py" />
-    <Compile Include="archive\fib_archive.py" />
-    <Compile Include="archive\s9_archive.py" />
     <Compile Include="back\back.py">
       <SubType>Code</SubType>
     </Compile>
@@ -44,8 +41,6 @@
     <Compile Include="map-red\red_sort.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="map-red\reshape2.py" />
-    <Compile Include="map-red\reshape1.py" />
     <Compile Include="map-red\utils.py" />
     <Compile Include="Search\BlackSearch.py">
       <SubType>Code</SubType>
@@ -66,14 +61,11 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="map-red\start.bat" />
-    <Content Include="map-red\start.sh" />
-    <Content Include="using.txt" />
+    <Content Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="back\" />
     <Folder Include="map-red\" />
-    <Folder Include="archive\" />
     <Folder Include="Search\" />
   </ItemGroup>
   <PropertyGroup>
