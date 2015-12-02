@@ -10,26 +10,26 @@ hadoop run_sort.sh
 -------------------------------------------------------------------------------------------
 ЗАПУСК:
 
-type "C:\data\povarenok.ru\1_1000\docs-000.txt" | python map_is4.py      | python sort.py > data\povarenok1000_mapped_s.txt
-type data\povarenok1000_mapped_s.txt            | python red_is4.py -s 9 | python sort.py > data\povarenok1000s_reduced_s.txt
+type data\povarenok.ru\1_1000\docs-*.txt | python map_is4.py      | python sort.py > data\povarenok1000_mapped_s.txt
+type data\povarenok1000_mapped_s.txt     | python red_is4.py -s 9 | python sort.py > data\povarenok1000s_reduced_s.txt
 
 python reshape.py -s 9                                             # архиватор
                   -e                                               # использовать хэши
                   -d data\povarenok_all_s_reduced_s.txt            # что преобразовывать
-		      # выход
-				  -i ..\all_index\povarenok_all_index.txt          # индекс обратного индекса
+		# выход
+                  -i ..\all_index\povarenok_all_index.txt          # индекс обратного индекса
                   -b ..\all_index\povarenok_all_s_backward.bin     # обратный индекс
-				  -l ..\all_index\povarenok_all_dlens.txt          # длины документов в обратном индексе
+		  -l ..\all_index\povarenok_all_dlens.txt          # длины документов в обратном индексе
 
 python TestMarks.py -s 9                                           # архиватор
                     -e                                             # использовать хэши
                     -i ..\all_index\povarenok_all_index.txt        # индекс обратного индекса
-                    -b ..\all_index\povarenok_all_s_backward.bin   # обратный индекс
-					-l ..\all_index\povarenok_all_dlens.txt        # длины документов в обратном индексе
-					-u "C:\data\povarenok.ru\all\urls.txt"         # ссылки на документы в индексе
-					-m "C:\\data\\povarenok.ru\\all\\povarenok1000.tsv"
-              # выход
-					-o ..\all_index\povarenok_all_ranked.txt       # log проверки marks
+        	    -b ..\all_index\povarenok_all_s_backward.bin   # обратный индекс
+		    -l ..\all_index\povarenok_all_dlens.txt        # длины документов в обратном индексе
+		    -u "C:\data\povarenok.ru\all\urls.txt"         # ссылки на документы в индексе
+		    -m "C:\\data\\povarenok.ru\\all\\povarenok1000.tsv"
+        	# выход
+		    -o ..\all_index\povarenok_all_ranked.txt       # log проверки marks
 -------------------------------------------------------------------------------------------
 flag | Значение по умолчанию
 -------------------------------------------------------------------------------------------
