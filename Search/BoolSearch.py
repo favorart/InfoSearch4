@@ -11,7 +11,7 @@ import codecs
 import time
 import json
 import sys
-sys.path.insert(0, 'archive')
+sys.path.insert(0, 'map-red')
 
 import re
 

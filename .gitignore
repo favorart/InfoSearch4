@@ -245,7 +245,11 @@ is4_all_povarenok_s/*
 all_index/*
 map-red/*.zip
 map-red/*.txt
+map-red/data/*.txt
+map-red/data1/*.txt
+Search/*.txt
 is2/*
 back/*
 archive/*
 *.bin
+check_index.py

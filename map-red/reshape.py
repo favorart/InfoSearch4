@@ -5,12 +5,14 @@ from base64 import b64decode, b64encode
 from itertools import groupby
 from operator import itemgetter
 
-import pymorphy2
 import codecs
 # import pprint
 import json
 import time
 import sys
+sys.path.insert(0, 'map-red')
+
+import re
 import os
 
 
@@ -35,7 +37,6 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
                         print >>sys.stderr, word.encode('cp866', 'ignore')
                     quantity += 1
 
-                    # index_tell = f_index.tell()
                     word_tell = f_bin.tell()
 
                     pos, hss = [], []
@@ -74,7 +75,7 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
                                 id, pos_b64 = splt
 
                             else:
-                                raise Exception('NO WORD IDS!!!')
+                                raise Exception('NO WORD IDS!!! %s' % word)
 
                             if int(id) == 0:
                                 # Получили все номера документов для данного слова
@@ -119,14 +120,6 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
                         for h in hss: f_bin.write(h)
                         # size = shifts[i+1] - shifts[i]
 
-                        # except:
-                        #     with codecs.open('incorrects.txt', 'a+', encoding='utf-8') as f_err:
-                        #         print >>f_err, u'%s\t%s' % (word, u' '.join( u'%s,%d,%s' % (k,v[0],v[1]) for k,v in index.items()))
-                        # 
-                        #     f_bin.seek(word_tell)
-                        #     # f_index.seek(index_tell)
-                        #     continue
-
                         if use_json:
                             print >>f_index, '\t"%s" : ' % word
                             print >>f_index, json.dumps(index, sort_keys=True, indent=2,
@@ -155,8 +148,6 @@ if __name__ == '__main__':
     elif args.s9:
         archiver =  s9_archive.Simple9Archiver()
 
-    # fib_archiver = fib_archive.FibonacciArchiver(args.fib * 100)
-
     reshape(args.dat_name, args.ndx_name, args.bin_name, args.len_name,
-            archiver=archiver, use_hashes=args.use_hashes) #, fib_archiver=fib_archiver)
+            archiver=archiver, use_hashes=args.use_hashes)
 

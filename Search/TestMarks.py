@@ -1,10 +1,12 @@
 #!/usr/bin python
 # -*- coding: utf-8 -*-
 
+from base64 import b64decode, b64encode
+
 import codecs
 import time
 import sys
-sys.path.insert(0, 'archive')
+sys.path.insert(0, 'map-red')
 
 import re
 import os
@@ -18,6 +20,7 @@ import s9_archive
 import fib_archive
 
 
+from array import array
 if __name__ == '__main__':
 
     args = utils.parse_args()
@@ -40,7 +43,7 @@ if __name__ == '__main__':
     bs = BooleanSearch(args.ndx_name, args.bin_name, archiver)     
     br = BlackSearch(bs, lex=utils.MyLex(), dlen_name=args.len_name)
     ts = TextSearch(br)
-
+    
     IS_IN = 0
 
     found = []

@@ -3,6 +3,8 @@
 
 import re
 import sys
+sys.path.insert(0, 'map-red')
+
 import copy
 import codecs
 import itertools
@@ -107,6 +109,7 @@ class TextSearch(object):
             if word in query_means:
                 intersect_doc_ids &= set(index['ids'])
         # ?? synonyms
+        intersect_doc_ids = list(intersect_doc_ids)
 
         tfs, idfs  = self.br.tf_idf(query_index, intersect_doc_ids)
         doc_scores = self.br.ranking(query_norms, query_index, intersect_doc_ids, tfs, idfs)

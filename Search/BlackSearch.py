@@ -5,6 +5,8 @@ from operator import itemgetter
 from math import *
 import codecs
 import sys
+sys.path.insert(0, 'map-red')
+
 import re
 
 import utils
