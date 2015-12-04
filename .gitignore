@@ -253,3 +253,5 @@ back/*
 archive/*
 *.bin
 check_index.py
+face/*
+bs123.zip

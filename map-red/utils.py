@@ -26,18 +26,15 @@ class MyLex(object):
         text = self.re_margin_spaces.sub(u'' , text)
     
         words = re.split(ur' ', text)
-        # words = filter(lambda w: len(w) >= self.min_word_len, words)
+        words = filter(lambda w: len(w) > 0, words)
         return  words
 
     def normalize(self, word):
         """ """
-        # if len(word) >= self.min_word_len:
         norm = self.morph.parse(word)[0].normal_form
-
         # self.hasher.update(word.encode('utf-8'))
         # hash = int(self.hasher.hexdigest(), 16) % self.hash_len
         hash = sum(map(ord, word)) % self.hash_len
-        
         return  (norm, hash)
 
     def norm(self, word):
@@ -63,6 +60,8 @@ class MyLex(object):
         return new_string
 
     def traslit(self, string, mode='2cyr'):
+        """ """
+        # TODO
         return
 
 

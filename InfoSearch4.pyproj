@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bab21737-7e1f-44e4-a1ad-5836c067fb28</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Search\TestMarks.py</StartupFile>
+    <StartupFile>map-red\red_is4.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -29,6 +29,15 @@
     <Compile Include="check_index.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="face\face.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="face\query_processor.py" />
+    <Compile Include="face\show_face.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="face\struct_tools.py" />
+    <Compile Include="face\web-server.py" />
     <Compile Include="map-red\BitsFlow.py" />
     <Compile Include="map-red\fib_archive.py" />
     <Compile Include="map-red\mapper.py">
@@ -54,10 +63,20 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="face\web\static\styles.css" />
+    <Content Include="face\web\static\test.txt" />
+    <Content Include="face\web\templates\index.html" />
+    <Content Include="face\web\templates\no_results.html" />
+    <Content Include="face\web\templates\search.html" />
+    <Content Include="face\web\templates\search_results.html" />
     <Content Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="face\web\" />
+    <Folder Include="face\web\static\" />
+    <Folder Include="face\web\templates\" />
     <Folder Include="map-red\" />
+    <Folder Include="face\" />
     <Folder Include="Search\" />
   </ItemGroup>
   <PropertyGroup>

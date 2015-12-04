@@ -56,13 +56,15 @@ parser_lxml = True # True - 'lxml', False - python 'html.parser'
 mylex = MyLex()
 # unicode io
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
+sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
+# -----------------------------------------------------------
 for line in sys.stdin:
     splt = line.strip().split()
 
     if len(splt) == 2:
         id, doc = splt
         html = decompress(b64decode(doc))
-    
+        # -----------------------------------------------------------
         if parser_lxml:
             html = html.decode('utf-8', 'ignore')
             bs = bs4.BeautifulSoup(html, 'lxml')
@@ -73,6 +75,7 @@ for line in sys.stdin:
             text = u' '.join( bs.strings )
             del bs
 
+        # -----------------------------------------------------------
         else:
             try:
                 html = html.decode('utf-8', 'ignore')
@@ -88,7 +91,7 @@ for line in sys.stdin:
 
         words = mylex.extract_words(text)
         del text
-
+        # -----------------------------------------------------------
         if  len(words) > 0:
             print u'%s\t%06d\t%06d' % ( u'$', int(id), len(words) )
 

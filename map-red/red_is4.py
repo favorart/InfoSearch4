@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from base64 import b64encode
-
-from itertools import groupby
 from operator import itemgetter
 
+import array
 import codecs
 import sys
 
@@ -13,6 +12,7 @@ import zipimport
 importer = zipimport.zipimporter('bs123.zip')
 
 
+# -----------------------------------------------------------
 # Выбор архиватора
 if   (len(sys.argv) > 2 and sys.argv[1] == '-f'):
     module = importer.load_module('fib_archive')
@@ -26,78 +26,176 @@ elif (len(sys.argv) > 2 and sys.argv[1] == '-s'):
 else: raise Exception("Have NO archiver-argument")
 
 
+# -----------------------------------------------------------
+NON_WORD_CHAR = u'$'
+def send_lens (Ls):
+    """ """
+    if  len(Ls) < 1:
+        print >>sys.stderr, "NO doc_ids and lens"
+        return False
+
+    #  Ls: (doc_id, doc_len)
+    Ls.sort(key=itemgetter(0))
+    ids, lens = zip(*Ls)
+    del Ls
+
+    # уточнаяем номера документов
+    if  len(ids) > 1:
+        ids = list(ids)
+        for i in xrange(len(ids) - 1, 0, -1):
+            ids[i] -= ids[i-1]
+
+    # всё архивируем вместе
+    to_code = [ len(ids) ] + list(ids) + list(lens)
+    del ids, lens
+    coded = archiver.code(to_code)
+    del to_code
+    # сразу отправляем, забываем
+    print u'%s\t%s' % ( NON_WORD_CHAR, b64encode(coded) )
+    del coded
+    return True
+
+# -----------------------------------------------------------
+def send_doc_ids_and_lens  (word, ids_and_posit_lens):
+    """ """
+    if  len(ids_and_posit_lens) < 1:
+        print >>sys.stderr, word, 'ids:', \
+                 len(ids_and_posit_lens)
+        return False
+
+    # Упаковываем номера документов и соответственные им длины
+    ids_and_posit_lens.sort(key=itemgetter(0))
+    ids, len_posits = zip(*ids_and_posit_lens)
+    del ids_and_posit_lens
+        
+    if  len(ids) > 1:
+        ids = list(ids)
+        # document ids shifting
+        for i in xrange(len(ids) - 1, 0, -1):
+            ids[i] -= ids[i-1]
+
+    # Архивируем их
+    coded_ids  = archiver.code(ids)
+    del ids
+    coded_lens = archiver.code(len_posits)
+    del len_posits
+
+    # И отправляем
+    print u'%s\t%06d\t%s\t%s' % (word, 0, b64encode(coded_ids), b64encode(coded_lens))
+    del coded_ids, coded_lens
+    return True
+
+# -----------------------------------------------------------
+def send_posits_and_hashes (word, id, posits_and_hashes):
+    """ """
+    if  len(posits_and_hashes) < 1:
+        print >>sys.stderr, word, id, \
+              'posits and hashes:', \
+              len(posits_and_hashes)
+        return False
+
+    posits_and_hashes.sort(key=itemgetter(0))
+    posits, hashes = zip(*posits_and_hashes)
+    del posits_and_hashes
+
+    # coordinates - лучше упаковывем
+    if  len(posits) > 1:
+        posits = list(posits)
+        for i in xrange(len(posits) - 1, 0, -1):
+            posits[i] -= posits[i-1]
+
+    # архивируем
+    coded_pos = archiver.code(posits)
+    del posits
+    coded_hss = archiver.code(hashes)
+    del hashes
+    # и отправляем          
+    print u'%s\t%06d\t%s\t%s' % (word, (int(id) + 1), b64encode(coded_pos), b64encode(coded_hss))
+    del coded_pos, coded_hss
+    # success
+    return True
+
+# -----------------------------------------------------------
+# State
+prev_word = None
+prev_w_id = None
+
+Ls = []
+
+ids_and_posit_lens = []
+posits_and_hashes  = []
+
+
 # Используем unicode в стандартных потоках io
 sys.stdin  = codecs.getreader('utf-8')(sys.stdin)
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
-for word, group in groupby((line.strip().split('\t', 1) for line in sys.stdin), itemgetter(0)):
+sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
 
-    if  u'$' in word:
+# -----------------------------------------------------------
+for line in sys.stdin:
+
+    splt = line.strip().split('\t')
+    word = splt[0]
+
+    # -----------------------------------------------------------
+    if  prev_word and (word != prev_word):
+
+        if  NON_WORD_CHAR in prev_word:
+            send_lens(Ls);  Ls = []
+
+        else:
+            len_ph = len(posits_and_hashes)
+            success = send_posits_and_hashes(prev_word, prev_w_id, posits_and_hashes)
+            posits_and_hashes  = []
+
+            # -----------------------------------------------------------
+            if  success:
+                # Для каждого слова собираем документы и число вхождений
+                ids_and_posit_lens.append( (int(prev_w_id), len_ph) )
                 
+                send_doc_ids_and_lens(prev_word, ids_and_posit_lens)
+                ids_and_posit_lens = []
+            else: print >>sys.stderr, 'NOT success', prev_word, prev_w_id
+
+    # -----------------------------------------------------------
+    if   (len(splt) == 3) and (NON_WORD_CHAR in word):
+        doc_id, doc_len = int(splt[1]), int(splt[2])
         # Собираем посчитанные длины документов
-        Ls = [ ( int(g[1].split('\t')[0]), int(g[1].split('\t')[1]) ) for g in group ]
-        # Ls: (doc_id, doc_len)
-        Ls.sort(key=itemgetter(0))
-        ids, lens = zip(*Ls)
+        Ls.append( (doc_id, doc_len) )
+        del splt
 
-        ids, lens = list(ids), list(lens)
-        # уточнаяем номера документов
-        if  len(ids) > 1:
-            for i in xrange(len(ids) - 1, 0, -1):
-                ids[i] -= ids[i-1]
+    # -----------------------------------------------------------
+    elif (len(splt) == 4) and (NON_WORD_CHAR not in word):
 
-        # всё архивируем вместе
-        to_code = [ len(ids) ] + ids + lens
-        coded = archiver.code(to_code)
-        # сразу отправляем, забываем
-        print u'$\t%s' % ( b64encode(coded) )
-        del to_code, coded
-
-    else:
-        ids_and_pos_lens = []
-        # Для каждого слова собираем документы и число вхождений
-        for id, new_group in groupby((g[1].strip().split('\t') for g in group), itemgetter(0)):
-
-            # Собираем позиции и хэши
-            posits_and_hashes = [ (int(g[1]), int(g[2])) for g in new_group  if len(g) >= 3 ]
+        id, posit, hash = int(splt[1]), int(splt[2]), int(splt[3])
+        if  prev_w_id and id != prev_w_id and (word == prev_word):
             
-            posits_and_hashes.sort(key=itemgetter(0))
-            posits, hashes = zip(*posits_and_hashes)
-            del posits_and_hashes
+            len_ph = len(posits_and_hashes)
+            success = send_posits_and_hashes(prev_word, prev_w_id, posits_and_hashes)
+            posits_and_hashes = []
 
-            posits, hashes = list(posits), list(hashes)
-            # coordinates - лучше упаковывем
-            if len(posits) > 1:
-                for i in xrange(len(posits) - 1, 0, -1):
-                    posits[i] -= posits[i-1]
-        
-            # cобираем документ для этого слова
-            ids_and_pos_lens.append( (int(id), len(posits)) )
+            # -----------------------------------------------------------
+            if  success:  
+                # Для каждого слова собираем документы и число вхождений
+                ids_and_posit_lens.append( (int(prev_w_id), len_ph) )
+            else: print >>sys.stderr, 'NOT success', prev_word, prev_w_id
 
-            # архивируем и отправляем
-            coded_pos = archiver.code(posits)
-            coded_hss = archiver.code(hashes)
-            del posits, hashes
-                
-            print u'%s\t%06d\t%s\t%s' % (word, (int(id) + 1), b64encode(coded_pos), b64encode(coded_hss))
-            del coded_pos, coded_hss
+        # Собираем позиции и хэши
+        posits_and_hashes.append( (int(posit), int(hash)) )
+        prev_w_id = id
 
-        # Упаковываем номера документов и соответственные им длины
-        ids_and_pos_lens.sort(key=itemgetter(0))
-        ids, len_posits = zip(*ids_and_pos_lens)
-        del ids_and_pos_lens
-        
-        ids, len_posits = list(ids), list(len_posits)
-        if  len(ids) > 1:
-            # document ids shifting
-            for i in xrange(len(ids) - 1, 0, -1):
-                ids[i] -= ids[i-1]
+    # -----------------------------------------------------------
+    else:  print >>sys.stderr, 'line:', line
+    prev_word = word
 
-        # Архивируем их
-        coded_ids  = archiver.code(ids)
-        coded_lens = archiver.code(len_posits)
-        del ids, len_posits
+# -----------------------------------------------------------
+# Не забыть, отправить последнее
+send_lens(Ls);  Ls = []
 
-        # И отправляем
-        print u'%s\t%06d\t%s\t%s' % (word, 0, b64encode(coded_ids), b64encode(coded_lens))
-        del coded_ids, coded_lens
+send_posits_and_hashes(prev_word, prev_w_id, posits_and_hashes)
+posits_and_hashes  = []
+
+send_doc_ids_and_lens(prev_word, ids_and_posit_lens)
+ids_and_posit_lens = []
+# -----------------------------------------------------------
 

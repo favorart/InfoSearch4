@@ -20,7 +20,6 @@ import s9_archive
 import fib_archive
 
 
-from array import array
 if __name__ == '__main__':
 
     args = utils.parse_args()
