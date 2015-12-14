@@ -1,16 +1,27 @@
-﻿import pymorphy2
+﻿from transliterate import translit
+import pymorphy2
 import argparse
 # import hashlib
 import codecs
+import sys
 import re
 import os
+
+
+def print_utf(string, nl=True):
+    """ """
+    if sys.platform.startswith('win'):
+        print string.encode('cp866', 'ignore'),
+    else:
+        print string,
+    if nl: print
 
 
 class MyLex(object):
     """ """
     def __init__(self):
         """ """
-        self.morph = pymorphy2.MorphAnalyzer()
+        self.morph = pymorphy2.MorphAnalyzer() # lang="ru-old")
         # self.hasher = hashlib.md5()
         self.hash_len = 251
 
@@ -18,6 +29,10 @@ class MyLex(object):
         self.re_extract_words = re.compile(ur'[^a-zа-яё0-9]')
         self.re_repeat_spaces = re.compile(ur'[ ]+')
         self.re_margin_spaces = re.compile(ur'(?:^[ ]+)|(?:[ ]+$)')
+
+        self.dgt = u'1234567890 '
+        self.lat = u'~`!@#$%^&qwertyuiop[]asdfghjkl;\'zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>? 1234567890'
+        self.cyr = u'ёЁ!"№;%:?йцукенгшщзхъфывапролджэячсмитьбю.ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭ/ЯЧСМИТЬБЮ, 1234567890'
         
     def extract_words(self, text):
         """ """
@@ -43,30 +58,32 @@ class MyLex(object):
 
     def incorrect_keyboard_layout(self, string, mode='2cyr'):
         """ Incorrect keyboard layout """
-        dgt = u'1234567890 '
-        lat = u'~`!@#$%^&qwertyuiop[]asdfghjkl;\'zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>? 1234567890'
-        cyr = u'ёЁ!"№;%:?йцукенгшщзхъфывапролджэячсмитьбю.ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭ/ЯЧСМИТЬБЮ, 1234567890'
-
         new_string = ""
-        if   all(s in dgt for s in string):
+        if   all(s in self.dgt for s in string):
             return string
-        elif mode == '2cyr' and all(s in lat for s in string):
+        elif mode == '2cyr' and all(s in self.lat for s in string):
             for s in string:
-                new_string += cyr[ lat.index(s) ]
-        elif mode == '2lat' and all(s in cyr for s in string):
+                new_string += self.cyr[ self.lat.index(s) ]
+        elif mode == '2lat' and all(s in self.cyr for s in string):
             for s in string:
-                new_string += lat[ cyr.index(s) ]
-        else: new_string = None
+                new_string += lat[ self.cyr.index(s) ]
+        else:  new_string = None
         return new_string
 
-    def traslit(self, string, mode='2cyr'):
+    def transliterate(self, string, mode='2cyr'):
         """ """
-        # TODO
-        return
+        new_string = ""
+        if   all(s in self.dgt for s in string):
+            return string
+        elif mode == '2cyr' and all(s in self.lat for s in string):
+            return translit(string, 'ru')
+        elif mode == '2lat' and all(s in self.cyr for s in string):
+            return translit(string, 'en')
+        else: return None
 
 
 def norm_url(url):
-    return re.sub(r'^https?://(?:www\.|.*)?povarenok\.ru/|/?\r?\n?$', '', url)
+    return re.sub(r'^https?://[^/]*povarenok\.ru/|/?\r?\n?$', '', url)
 
 
 def parse_args():

@@ -255,3 +255,13 @@ archive/*
 check_index.py
 face/*
 bs123.zip
+web/*
+*.pkl
+is_in_mark_ids.txt
+mark_ids.txt
+is4_povarenok_all_s_sorted/*
+all_index1/*
+all_index/*
+ranked.txt
+profile
+back.py

@@ -1,0 +1,8 @@
+transliterate
+pymorphy2
+
+beautifulsoup
+pickle
+numpy
+
+web

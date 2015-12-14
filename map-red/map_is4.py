@@ -50,13 +50,10 @@ class MyLex(object):
         return  (norm, hash)
 
 
-parser_lxml = True # True - 'lxml', False - python 'html.parser'
-
-
 mylex = MyLex()
 # unicode io
 sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
-sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
+# sys.stderr = codecs.getwriter('utf-8')(sys.stderr)
 # -----------------------------------------------------------
 for line in sys.stdin:
     splt = line.strip().split()
@@ -65,35 +62,20 @@ for line in sys.stdin:
         id, doc = splt
         html = decompress(b64decode(doc))
         # -----------------------------------------------------------
-        if parser_lxml:
-            html = html.decode('utf-8', 'ignore')
-            bs = bs4.BeautifulSoup(html, 'lxml')
+        html = html.decode('utf-8', 'ignore')
+        bs = bs4.BeautifulSoup(html, 'lxml')
 
-            # kill all script and style elements
-            for script in bs(["script", "style"]):
-                script.extract() # rip it out
-            text = u' '.join( bs.strings )
-            del bs
-
-        # -----------------------------------------------------------
-        else:
-            try:
-                html = html.decode('utf-8', 'ignore')
-                bs = bs4.BeautifulSoup(html) # , 'html.parser')
-                del html
-
-                # kill all script and style elements
-                for script in bs(["script", "style"]):
-                    script.extract() # rip it out
-                text = u' '.join( bs.strings )
-                del bs
-            except: continue
+        # kill all script and style elements
+        for script in bs(["script", "style"]):
+            script.extract() # rip it out
+        text = u' '.join( bs.strings )
+        del bs
 
         words = mylex.extract_words(text)
         del text
         # -----------------------------------------------------------
         if  len(words) > 0:
-            print u'%s\t%06d\t%06d' % ( u'$', int(id), len(words) )
+            print u'%s\t%06d\t%06d\t%06d' % ( u'$', int(id), 0, len(words) )
 
             for pos, word in enumerate(words):
                 norm, hash = mylex.normalize(word)

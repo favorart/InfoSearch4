@@ -11,6 +11,7 @@ import json
 import time
 import sys
 sys.path.insert(0, 'map-red')
+sys.path.insert(0, '..')
 
 import re
 import os
@@ -31,13 +32,14 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
 
             if use_json: print >>f_index, '{'
             with codecs.open(dat_name, 'r', encoding='utf-8') as f_data:
-                for word, group in groupby((line.strip().split('\t') for line in f_data), key=itemgetter(0)):
+                for word, group in groupby( ( line.strip().split('\t') for line in f_data if len(line.split('\t', 1)[0]) ), key=itemgetter(0)):
 
                     if not (quantity % 100):
                         print >>sys.stderr, word.encode('cp866', 'ignore')
                     quantity += 1
 
                     word_tell = f_bin.tell()
+                    id_parts = 0
 
                     pos, hss = [], []
                     index = {}
@@ -48,15 +50,17 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
                         if (len(splt) == 1) and (word == u'$'):
                             coded = splt[0]
                 
+                            start_time = time.time()
                             decoded = archiver.decode(b64decode(coded))
-
-                            N = decoded[0]
+                            print '$ - %.3f sec.', (time.time() - start_time)
+                            
+                            N = decoded[0]/2
                             ids = decoded[1:N+1]
                             lens = decoded[N+1:]
-
+                            
                             for i in xrange(1,len(ids)):
                                 ids[i] += ids[i-1]
-
+                            
                             with open(len_name, 'w') as f_dlen:
                                 print >>f_dlen, '%d\t%s' % ( N, ' '.join([ '%d,%d' % (did, dlen)
                                                                           for did, dlen in zip(ids, lens) ]) ),
@@ -66,22 +70,31 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
                         elif (len(splt) >= 2):
 
                             if   len(splt) > 2 and int(splt[0]) == 0:
-                                id, ids_b64, lens_b64 = splt
+                                id, id_part, ids_b64, lens_b64 = splt
 
                             elif len(splt) > 2 and use_hashes:
-                                id, pos_b64, hss_b64 = splt
+                                id, id_part, pos_b64, hss_b64 = splt
 
                             elif len(splt) > 1 and not use_hashes:
-                                id, pos_b64 = splt
+                                id, id_part, pos_b64 = splt
 
                             else:
                                 raise Exception('NO WORD IDS!!! %s' % word)
 
                             if int(id) == 0:
-                                # Получили все номера документов для данного слова
-                                coded_ids  = b64decode( ids_b64)
-                                coded_lens = b64decode(lens_b64)
-                                del ids_b64, lens_b64
+                                if id_parts:
+                                    # # создаём инвертированный список
+                                    # decoded_ids = archiver.decode(coded_ids)
+                                    # for 
+                                    coded_ids1  = b64decode( ids_b64)
+                                    coded_lens1 = b64decode(lens_b64)
+                                    del ids_b64, lens_b64
+                                else:
+                                    # Получили все номера документов для данного слова
+                                    coded_ids  = b64decode( ids_b64)
+                                    coded_lens = b64decode(lens_b64)
+                                    del ids_b64, lens_b64
+                                id_parts += 1
 
                             else:
                                 id = (int(id) - 1)
@@ -97,25 +110,68 @@ def reshape(dat_name, ndx_name, bin_name, len_name, archiver,
                     if word != '$':
                         # ('offset', 'size')
                         
+                        # index['parts'] = id_parts
                         # Записываем их в бинарный файл первыми
-                        index['ids']  = (f_bin.tell(), len(coded_ids))
-                        f_bin.write(coded_ids)
+                        if  id_parts > 1:
+                            f_tell = f_bin.tell()
+                            f_bin.write(coded_ids)
+                            f_tell1 = f_bin.tell()
+                            f_bin.write(coded_ids1)
 
-                        # Затем количества позиций для каждого документа
-                        index['lens'] = (f_bin.tell(), len(coded_lens))
-                        f_bin.write(coded_lens)
+                            index['ids']  = (f_tell, len(coded_ids), f_tell1, len(coded_ids1))
+                            del coded_ids, coded_ids1
+
+                            # Затем количества позиций для каждого документа
+                            f_tell = f_bin.tell()
+                            f_bin.write(coded_lens)
+                            f_tell1 = f_bin.tell()
+                            f_bin.write(coded_lens1)
+
+                            index['lens'] = (f_tell, len(coded_lens), f_tell1, len(coded_lens1))
+                            del coded_lens, coded_lens1
+                        else:
+                            index['ids']  = (f_bin.tell(), len(coded_ids))
+                            f_bin.write(coded_ids)
+
+                            # Затем количества позиций для каждого документа
+                            index['lens'] = (f_bin.tell(), len(coded_lens))
+                            f_bin.write(coded_lens)
+
+                            del coded_ids, coded_lens
 
                         # Позиции
-                        shifts = [ len(p) for p in pos ]
+                        shifts1 = [ len(p) for p in pos ]
+                        shifts2 = [ len(h) for h in hss ]
 
-                        index['posits'] = (f_bin.tell(), b64encode(archiver.code(shifts)) )
+                        # if len(shifts1) != len(shifts2):
+                        #     print "ERROR!!!"
+                        #     sys.exit()
+
+                        # coded  = archiver.code (shifts1)
+                        # decoded = archiver.decode(coded)
+                        # 
+                        # if len(shifts1) != len(decoded):
+                        #     print "DECODED LEN!!!"
+                        #     print len(shifts1), len(decoded)
+                        #     print word.encode('cp866', 'ignore')
+                        #     sys.exit()
+                        # 
+                        # for i,s,d in zip(range(len(shifts1)), shifts1, decoded):
+                        #     if s != d:
+                        #         print "DECODED"; print i,s,d
+                        #         print word.encode('cp866', 'ignore')
+                        #         sys.exit()
+
+                        # index['posits'] = (f_bin.tell(), b64encode(coded) )
+
+                        index['posits'] = (f_bin.tell(), b64encode(archiver.code(shifts1)) )
                         # Записываем их в бинарный файл
                         for p in pos: f_bin.write(p)
 
                         # В конце хэши
-                        shifts = [ len(h) for h in hss ]
+                        # shifts = [ len(h) for h in hss ]
 
-                        index['hashes'] = (f_bin.tell(), b64encode(archiver.code(shifts)) )
+                        index['hashes'] = (f_bin.tell(), b64encode(archiver.code(shifts2)) )
                         # Записываем их в бинарный файл
                         for h in hss: f_bin.write(h)
                         # size = shifts[i+1] - shifts[i]

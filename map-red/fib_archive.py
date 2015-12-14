@@ -8,22 +8,28 @@ from bisect import bisect
 from BitsFlow import BitStreamReader, BitStreamWriter
 
 
-# Fibonacci Series
 class FibonacciArchiver(object):
     """ """
-    def  __init__(self, max):
+    def  __init__(self, max=34):
         """ """
         self.fib_series = []
-        FibonacciArchiver.fibonacci_series(self.fib_series, max)
+        self.fibonacci_init_series(max)
 
-    @staticmethod
-    def  fibonacci_series(fib_series, max):
+    def  fibonacci_init_series(self, max):
         """ """
         (first, second, next) = (0, 1, 0)
         while (max >= next):
             next = first + second
             first, second = second, next
-            fib_series.append(next)
+            self.fib_series.append(next)
+
+    def  fibonacci_to_upper(self, upper_bound):
+        while self.fib_series[-1] <= upper_bound:
+            self.fib_series.append(self.fib_series[-1] + self.fib_series[-2])
+
+    def  fibonacci_to_index(self, index):
+        while len(self.fib_series) <= index:
+            self.fib_series.append(self.fib_series[-1] + self.fib_series[-2])
 
     def    code(self, data, verbose=False):
         """ Найти max число Фибоначчи
@@ -35,6 +41,13 @@ class FibonacciArchiver(object):
         """
         all_bits = []
         for number in data:
+
+            if number <= 0:
+                raise ValueError("Fibonacci archiver: can't " + \
+                                 "code non-positive integer " + str(number))
+
+            self.fibonacci_to_upper(number)
+
             bits = [1]
             if verbose: print "number=%d\n" % number
 
@@ -57,14 +70,16 @@ class FibonacciArchiver(object):
                 bits.append(0)
                 index -= 1
 
-            if verbose:
-                print '\n', ''.join(str(b) for b in bits[::-1])
+            if verbose: print '\n', ''.join(str(b) for b in bits[::-1])
             all_bits += bits[::-1]
 
         bw = BitStreamWriter()
         for b in all_bits:
             bw.add(b)
-        return bw.getbytes()
+
+        decoded = bw.getbytes()
+        bw.clean()
+        return decoded
 
     def  decode(self, data, verbose=False):
         """ Найти 2 единицы, убрать последнюю
@@ -82,11 +97,12 @@ class FibonacciArchiver(object):
             if bit and bits and bits[-1]:                
                 if verbose:
                     bits.append(bit)
-                    if verbose: print ''.join(str(b) for b in bits)
+                    if verbose: print ''.join(str(int(b)) for b in bits)
                     bits = bits[:-1]
 
                 number = 0
                 for i,b in enumerate(bits):
+                    self.fibonacci_to_index(i)
                     number += b * self.fib_series[i]
 
                 if verbose: print number
@@ -95,20 +111,57 @@ class FibonacciArchiver(object):
             else:
                 bits.append(bit)
 
-        return decoded
+        return map(int,decoded)
 
+
+def incorr(decoded, numbers):
+    for i,j in zip(decoded, numbers):
+        if i != j:
+            print i, '!=', j
 
 if __name__ == '__main__':
+
+    fib = FibonacciArchiver()
+
+    numbers = [ 1 ] * 28
+    # print len(numbers)
+    coded   = fib.code(numbers)
+    # for byte in coded:
+    #     print bin(ord(byte)),
+    # print
+    incorr(fib.decode(coded), numbers)
+
+    numbers = [1,3] * 7
+    # print len(numbers)
+    coded   = fib.code(numbers)
+    incorr(fib.decode(coded), numbers)
+
+    numbers = [3,5,7] * 3
+    # print len(numbers)
+    coded   = fib.code(numbers)
+    incorr(fib.decode(coded), numbers)
+
+    numbers = [10, 15] * 3 + [15]
+    # print len(numbers)
+    coded   = fib.code(numbers)
+    incorr(fib.decode(coded), numbers)
+
+    numbers = [16, 11, 12, 19, 31] + [16381, 16382] + [ 268435455 ]
+    # print len(numbers)
+    coded   = fib.code(numbers)
+    incorr(fib.decode(coded), numbers)
+
     with open('data/nums.uniq.txt','r') as file:
         numbers = map(int, file.readlines())
 
-    fib = FibonacciArchiver( numbers[-1] + 7 )
-    coded = fib.code(numbers)
+    import time
+    start_time = time.time()
+    
+    coded   = fib.code(numbers)
     decoded = fib.decode(coded)
 
-    for i,j in zip(decoded, numbers):
-        if i != j:
-            print i,j
+    print "%.3f sec." % (time.time() - start_time)
+    incorr(decoded, numbers)
 
 
 

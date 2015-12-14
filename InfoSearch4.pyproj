@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>bab21737-7e1f-44e4-a1ad-5836c067fb28</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>map-red\red_is4.py</StartupFile>
+    <StartupFile>Search\TestMarks.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -13,9 +13,11 @@
     <Name>InfoSearch4</Name>
     <RootNamespace>InfoSearch4</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-s 9 -e -l "C:\Users\MainUser\Documents\Visual Studio 2015\Projects\python\InfoSearch4\InfoSearch4\map-red\data\povarenok1000_dlens.txt" -i "C:\Users\MainUser\Documents\Visual Studio 2015\Projects\python\InfoSearch4\InfoSearch4\map-red\data\povarenok1000_index.txt" -b "C:\Users\MainUser\Documents\Visual Studio 2015\Projects\python\InfoSearch4\InfoSearch4\map-red\data\povarenok1000s_backward.bin" -o ranked.txt</CommandLineArguments>
+    <CommandLineArguments>-s 9 -e -i all_index/povarenok_all_index.txt -b all_index/povarenok_all_s_backward.bin -l all_index/povarenok_all_dlens.txt -o all_index/ranked.txt -u C:\data\povarenok.ru\all\urls.txt</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
+    <InterpreterId>{787a88ce-299e-4aa0-8a2b-1ea91b23c5fa}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,6 +28,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="back.py" />
     <Compile Include="check_index.py">
       <SubType>Code</SubType>
     </Compile>
@@ -44,10 +47,14 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="map-red\red_is4_new.py" />
+    <Compile Include="map-red\red_sort_old.py" />
     <Compile Include="map-red\red_sort.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="map-red\s9_archive.py" />
+    <Compile Include="map-red\reshape.py" />
+    <Compile Include="map-red\s9_archive.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="map-red\utils.py" />
     <Compile Include="Search\BlackSearch.py">
       <SubType>Code</SubType>
@@ -63,21 +70,28 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="face\web\static\styles.css" />
-    <Content Include="face\web\static\test.txt" />
-    <Content Include="face\web\templates\index.html" />
-    <Content Include="face\web\templates\no_results.html" />
-    <Content Include="face\web\templates\search.html" />
-    <Content Include="face\web\templates\search_results.html" />
+    <Content Include="libs.txt">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="web\static\styles.css" />
+    <Content Include="web\static\test.txt" />
+    <Content Include="web\templates\index.html" />
+    <Content Include="web\templates\no_results.html" />
+    <Content Include="web\templates\search.html" />
+    <Content Include="web\templates\search_results.html" />
     <Content Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="face\web\" />
-    <Folder Include="face\web\static\" />
-    <Folder Include="face\web\templates\" />
+    <Folder Include="web\" />
+    <Folder Include="web\static\" />
+    <Folder Include="web\templates\" />
     <Folder Include="map-red\" />
     <Folder Include="face\" />
     <Folder Include="Search\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="{787a88ce-299e-4aa0-8a2b-1ea91b23c5fa}\2.7" />
+    <InterpreterReference Include="{9a7a9026-48c1-4688-9d5d-e5699d47d074}\2.7" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

@@ -101,7 +101,8 @@ class BlackSearch(object):
                     idf = idfs [word]
                 except: continue
 
-                score += (tf * idf) / ( k * (1. - b + b * L / A) + tf )
+                if  idf > 0:
+                    score += (tf * idf) / ( k * (1. - b + b * L / A) + tf )
             doc_scores.append( (doc_id, score) )
 
         # idf > 0, выкидываем стоп слова

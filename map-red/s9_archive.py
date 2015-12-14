@@ -1,9 +1,9 @@
-﻿#!/usr/bin python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# import zipimport
-# importer = zipimport.zipimporter('bs123.zip')
-# BitsFlow = importer.load_module('BitsFlow')
+import zipimport
+importer = zipimport.zipimporter('bs123.zip')
+BitsFlow = importer.load_module('BitsFlow')
 from BitsFlow import BitStreamReader, BitStreamWriter
 
 
@@ -64,7 +64,7 @@ class Simple9Archiver(object):
                     index += self.counts[n - 1]
                     break
 
-            else: raise Exception("simple9: number is too big")
+            else: raise ValueError
         return bw.getbytes()
 
     def  decode(self, data, verbose=False):

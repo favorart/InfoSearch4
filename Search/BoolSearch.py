@@ -7,13 +7,16 @@ from operator import itemgetter
 
 import pymorphy2
 # import pprint
+import pickle
 import codecs
 import time
+# import ijson
 import json
 import sys
 sys.path.insert(0, 'map-red')
 
 import re
+import os
 
 import utils
 import s9_archive
@@ -22,7 +25,7 @@ import fib_archive
 
 class BooleanSearch(object):
     """ """
-    def __init__(self, ndx_name, bin_name, archiver, use_json=True):
+    def __init__(self, ndx_name, bin_name, archiver):
         """ Constructor:
             word_index = { 'norm' : { 'ids'    : (offset, size),
                                       'lens'   : (offset, size),
@@ -30,40 +33,41 @@ class BooleanSearch(object):
                                       'hashes' : (offset, size) }, ... }
         """
         self.word_index = {}
-        with codecs.open(ndx_name, 'r', encoding='utf-8') as f_index:
-            if use_json:
-                self.word_index = json.loads(f_index.read(), encoding='utf-8')
-            else:
-                for line in f_index:
-                    splt = line.strip().split('\t')
-                    if len(splt) == 2:
-                        index = splt[1].split(' ')
-                        dic = {}
-                        for item in index:
-                            value = item.split(',')
-                            dic[value[0]]= value[1] if len(value) < 3 else map(int, value[1:])
-                        self.word_index[splt[0]] = dic
 
-        # # USING THE OLD INDEX
-        # self.w_offsets = {}
-        # with codecs.open(ndx_name, 'r', encoding='utf-8') as f_index:
-        #     for line in f_index.readlines():
-        #         word, offset, size = line.strip().split()
-        #         self.w_offsets[word] = (int(offset), int(size))
+        if not os.path.exists(ndx_name + '.pkl'):
+            with codecs.open(ndx_name, 'r', encoding='utf-8') as f_index:
+                self.word_index = json.load(f_index, encoding='utf-8')
+                
+            with open(ndx_name + '.pkl', 'w') as f_index:
+                pickle.dump(self.word_index, f_index)
+        else:
+            with open(ndx_name + '.pkl', 'r') as f_index:
+                self.word_index = pickle.load(f_index)
 
         self.bin_name = bin_name
         self.ndx_name = ndx_name
         self.archiver = archiver
 
-        # Performance time to define
-        # caching or not the bin-read-index of word
-        self.time2cache=20. # in seconds
+        # Caching or not the bin-read-index of word
+        self.index_size2cache = 30000
         self.cache_max_len = 100
-        self.cache = {}
+        self.fn_cache = bin_name + '-cache-json.txt'
+        # cache: { word: (index, time) }
 
+        try:
+            if  os.path.exists(self.fn_cache):
+                with codecs.open(self.fn_cache, 'r', encoding='utf-8') as f_cache:
+                    self.cache = json.load(f_cache,  encoding='utf-8')
+        except:
+            self.cache = {}
+            
     def decode_posits_and_hashes_for_doc(self, index, doc_index):
         """ """
         posits, coded = index['posits']
+        coded = b64decode(coded)
+
+        if doc_index >= len(posits):
+            print doc_index
 
         b,e = posits[doc_index], posits[doc_index + 1]
         decoded_posits = self.archiver.decode(coded[b:b+e])
@@ -72,81 +76,94 @@ class BooleanSearch(object):
             decoded_posits[i] += decoded_posits[i-1]
         # ---------------------------------------------------
         hashes, coded = index['hashes']
+        coded = b64decode(coded)
 
         b,e = hashes[doc_index], hashes[doc_index + 1]
         decoded_hashes = self.archiver.decode(coded[b:b+e])
         # ---------------------------------------------------
         return  (decoded_posits, decoded_hashes)
 
+    def read_and_decode_word_index(self, f_backward, norm, dic, up):
+        """ """
+        index = {}
+        for key in up:
+
+            if  key == 'ids' or key == 'lens':
+
+                if len(dic[key]) == 2:
+                    offset,  size  = dic[key]
+                    offset1, size1 = 0, 0
+                else:
+                    offset,  size, \
+                    offset1, size1 = dic[key]
+
+                f_backward.seek(offset)
+                coded = f_backward.read(size)
+
+                decoded = self.archiver.decode(coded)
+                # print decoded
+                if key == 'ids':
+                    for i in xrange(1, len(decoded)):
+                        decoded[i] += decoded[i-1]
+
+                if  size1:
+                    f_backward.seek(offset1)
+                    coded1 = f_backward.read(size1)
+
+                    decoded1 = self.archiver.decode(coded1)
+                    # print decoded
+                    if key == 'ids':
+                        for i in xrange(1, len(decoded1)):
+                            decoded1[i] += decoded1[i-1]
+                else: decoded1 = []
+                index[key] = decoded + decoded1
+
+                # print key, len(index[key])
+
+            else:
+                offset, data = dic[key]
+                sizes = self.archiver.decode( b64decode(data) )
+                # print decoded
+                size = sum(sizes)
+
+                f_backward.seek(offset)
+                coded = f_backward.read(size)
+
+                index[key] = ([0] + sizes, b64encode(coded) )
+
+                # print key, len(index[key][0])
+
+        return  index
+
     def extract(self, query_norms,
                 up=['ids', 'lens', 'posits', 'hashes'],
                 verbose=False):
         """ Extract all data by query words """
-        answer = {}
-
-        if  len(self.cache) >= self.cache_max_len:
-            half = self.cache_max_len / 2
-            items = self.cache.items()
-            items.sort(key=lambda x: x[1][1], reverse=True)
-            self.cache = dict(items[:half])
-
+        query_index = {}
         with open(self.bin_name, 'rb') as f_backward:
             for norm in query_norms:
 
                 if  norm in self.cache:
-                    answer[norm] = self.cache[norm][0]
-                    self.cache[norm][1] = time.time()
+                    query_index[norm] = self.cache[norm]['index']
+                    self.cache[norm]['time'] = time.time()
                     continue
     
                 if  norm not in self.word_index:
-                    if verbose:
-                        if sys.platform.startswith('win'):
-                            print '---', norm.encode('cp866', 'ignore')
-                        else:
-                            print '---', norm
+                    if verbose: utils.print_utf('--- ' + norm)
                     continue
-
-                dic = self.word_index[norm]
-                    
-                start_time = time.time()
-
-                answer[norm] = {}
-                for key in up:
-
-                    if  key == 'ids' or key == 'lens':
-                        offset, size = dic[key]
-                        f_backward.seek(offset)
-                        coded = f_backward.read(size)
-
-                        decoded = self.archiver.decode(coded)
-                        # print decoded
-
-                        if key == 'ids':
-                            for i in xrange(1, len(decoded)):
-                                decoded[i] += decoded[i-1]
-                        answer[norm][key] = decoded
-
-                    else:
-                        offset, data = dic[key]
-                        sizes = self.archiver.decode( b64decode(data) )
-                        # print decoded
-                        size = sum(sizes)
-
-                        f_backward.seek(offset)
-                        coded = f_backward.read(size)
-
-                        answer[norm][key] = ([0] + sizes, coded)
-
-                if (time.time() - start_time) > self.time2cache:
-                    # if verbose: print "arc. %.3f sec." % (time.time() - start_time),
-                    self.cache[norm] = [ answer[norm], time.time() ]
-        # if verbose: print 'cach. %d' % len(self.cache)
-        return answer
+  
+                # start_time = time.time()
+                query_index[norm] = self.read_and_decode_word_index(f_backward, norm, 
+                                                                    self.word_index[norm], up=up)
+                # if verbose: print "arc. %.3f sec." % (time.time() - start_time),
+                self.cache_insert(norm, query_index[norm])
+        # if verbose: print 'cache_len %d' % len(self.cache)
+        return query_index
 
     def search(self, query_norms, verbose=False):
         """ Boolean Search by query """
         oper = ''
-        answer = set()
+        query_index = set()
 
         with open(self.bin_name, 'rb') as f_backward:
             for norm in query_norms:
@@ -155,17 +172,13 @@ class BooleanSearch(object):
                     oper = norm
 
                 else:
+                    try: # if 1:
 
-                    try:
-                    # if 1:
+                        # TODO: !!!
                         offset, size = self.word_index[norm]['ids']
                         # offset, size = self.w_offsets[norm]
                     except:
-                        if verbose:
-                            if sys.platform.startswith('win'):
-                                print '---', norm.encode('cp866', 'ignore')
-                            else:
-                                print'---', norm
+                        if verbose: utils.print_utf('--- ' + norm)
                         continue
 
                     f_backward.seek(offset)
@@ -178,13 +191,34 @@ class BooleanSearch(object):
                     # print decoded
                     decoded = set(decoded)
 
-                    if      not answer : answer  = decoded
-                    elif oper == 'AND' : answer &= decoded
-                    elif oper == 'OR'  : answer |= decoded
-                    elif oper == 'NOT' : answer -= decoded
+                    if not query_index : query_index  = decoded
+                    elif oper == 'AND' : query_index &= decoded
+                    elif oper == 'OR'  : query_index |= decoded
+                    elif oper == 'NOT' : query_index -= decoded
                     else: break
 
-        return list(answer)
+        return list(query_index)
+
+    def cache_insert(self, norm, index):
+        """ """
+        if  len(self.cache) >= self.cache_max_len:
+            part = int(float(self.cache_max_len) / 3)
+
+            items = self.cache.items()
+            items.sort(key=lambda x: x[1]['time'], reverse=True)
+            self.cache = dict(items[:part])
+
+            with codecs.open(self.fn_cache, 'w', encoding='utf-8') as f_cache:
+                str = json.dumps(self.cache, ensure_ascii=False, encoding='utf-8')
+                f_cache.write(str)
+
+        # if (time.time() - start_time) > self.time2cache:
+        elif len(index['ids']) >= self.index_size2cache:
+
+            self.cache[norm] = { 'index' : index, 'time' : time.time() }
+
+            with codecs.open(self.fn_cache, 'w', encoding='utf-8') as f_cache:
+                json.dump(self.cache, f_cache, ensure_ascii=False, encoding='utf-8')
 
 
 if __name__ == '__main__':
@@ -225,7 +259,6 @@ if __name__ == '__main__':
             print '\n', '\n'.join([ urls[i] for i in answer ]), '\n'
 
     else:
-        
         found = 0
         with codecs.open(args.mrk_name, 'r', encoding='utf-8') as f_marks:
             for i, line in enumerate(f_marks):
