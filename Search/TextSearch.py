@@ -129,14 +129,16 @@ class TextSearch(object):
 
         tfs, idfs  = self.br.tf_idf(query_index, intersect_doc_ids)
         doc_scores = self.br.ranking(query_norms, query_index, intersect_doc_ids, tfs, idfs)
+        del intersect_doc_ids
 
         if mark_id:
             res = [ (i,score[1]) for i,score in enumerate(doc_scores) if score[0] == mark_id ]
-            print >>f_params, "mark_id:", res if res else "none"
-            print             "mark_id:", res if res else "none"
+            print >>f_params, "mark_bm25:", res if res else "none"
+            print             "mark_bm25:", res if res else "none"
 
         # choose documents to ranking by passage algorithm
         doc_bm25_scores = doc_scores[:max_n_docs]
+        del doc_scores
 
         doc_pssg_scores = []
         for doc_id, score in doc_bm25_scores:
@@ -144,25 +146,16 @@ class TextSearch(object):
                                              query_index, doc_id,
                                              tfs, idfs)
             doc_pssg_scores.append( (doc_id, best_passage_rank) )
-
-        # sort by ids
-        doc_pssg_scores.sort(key=itemgetter(0))
-        doc_bm25_scores.sort(key=itemgetter(0))
+        doc_pssg_scores.sort(key=lambda x: sum(x[1]))
 
         if mark_id:
             res = [ (i,score[1]) for i,score in enumerate(doc_pssg_scores) if score[0] == mark_id ]
-            print             "mark_id pssg:", res if res else "none"
-            print >>f_params, "mark_id pssg:", res if res else "none"
+            print             "mark_passages:", res if res else "none"
+            print >>f_params, "mark_passages:", res if res else "none"
             print >>f_params, '\n'
             print             '\n'
 
-        # total rank
-        doc_scores = map(lambda x, y: (x[0], sum(x[1]) + y[1]), doc_pssg_scores, doc_bm25_scores)
-        # sort by rank
-        doc_scores.sort(key=itemgetter(1), reverse=True)
-        print doc_scores[:5]
-
-        doc_ids = [ score[0] for score in doc_scores ]
+        doc_ids = [ score[0] for score in doc_pssg_scores ]
         return doc_ids
 
     def sliding_window(self, query__n_h, doc_text):

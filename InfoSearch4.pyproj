@@ -14,9 +14,9 @@
     <RootNamespace>InfoSearch4</RootNamespace>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <CommandLineArguments>-s 9 -e -i all_index/povarenok_all_index.txt -b all_index/povarenok_all_s_backward.bin -l all_index/povarenok_all_dlens.txt -o all_index/ranked.txt -u C:\data\povarenok.ru\all\urls.txt</CommandLineArguments>
-    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <EnableNativeCodeDebugging>True</EnableNativeCodeDebugging>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <InterpreterId>{787a88ce-299e-4aa0-8a2b-1ea91b23c5fa}</InterpreterId>
+    <InterpreterId>{9a7a9026-48c1-4688-9d5d-e5699d47d074}</InterpreterId>
     <InterpreterVersion>2.7</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

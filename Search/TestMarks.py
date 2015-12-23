@@ -81,7 +81,7 @@ def main():
                 # print >>f_ranks, mark_id, '=', ','.join([str(a) for a in answer])
 
                 try:
-                    z = answer_urls.index(mark_id)
+                    z = answer.index(mark_id)
                     print '\tOK(%d)' % z
                     print >>f_ranks, '\tOK(%d)' % z
                     IS_IN += 1
